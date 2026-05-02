@@ -18,6 +18,16 @@ cp .env.example .env
 npm run studio          # opens the Remotion Studio for live preview
 ```
 
+## Narration (optional)
+
+Edit `narration.json`, then:
+
+```bash
+npm run narrate         # generates public/audio/*.mp3 via ElevenLabs TTS
+```
+
+Audio files are committed to the repo so renders are deterministic. The composition gates each `<Audio>` on file existence — if you skip narration, the reel still renders cleanly without sound.
+
 ## Render a reel
 
 ```bash

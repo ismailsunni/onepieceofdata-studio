@@ -1,0 +1,23 @@
+{
+  "voiceId": "TX3LPaxmHKxFdv7VOQHJ",
+  "model": "eleven_turbo_v2_5",
+  "settings": {
+    "stability": 0.45,
+    "similarityBoost": 0.75,
+    "style": 0.35,
+    "useSpeakerBoost": true
+  },
+  "lines": {
+    "title": "Is East Blue really the weakest sea? Let's see what the data says.",
+    "subtitle": "Top five bounties per sea, sorted from weakest average.",
+    "east-blue-clean": "East Blue, without Luffy and Roger. The numbers are brutal.",
+    "east-blue": "But add Luffy and Roger back, and East Blue completely transforms.",
+    "west": "West Blue. Home to a few real heavyweights.",
+    "north": "North Blue, where dark legends grow.",
+    "south": "South Blue. Plenty of pirates, plenty of bounty.",
+    "grand-line": "The Grand Line. The real game begins here.",
+    "new-world": "And the New World. The strongest pirates of all.",
+    "recap": "Here's the full ranking, strongest sea first.",
+    "final": "So… is East Blue really the weakest? It depends who you count."
+  }
+}

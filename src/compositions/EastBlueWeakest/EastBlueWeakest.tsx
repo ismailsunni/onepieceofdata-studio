@@ -1,9 +1,11 @@
 import {
   AbsoluteFill,
+  Audio,
   Img,
   interpolate,
   Sequence,
   spring,
+  staticFile,
   useCurrentFrame,
   useVideoConfig,
 } from 'remotion'
@@ -15,12 +17,17 @@ export type EastBlueWeakestProps = {
   latestChapter: number | null
 } & Record<string, unknown>
 
-// Per-card timing (in frames at 30fps).
-export const TITLE_FRAMES = 75 // 2.5s
-export const SUBTITLE_FRAMES = 45 // 1.5s
-export const CARD_FRAMES = 120 // 4s per sea card
-export const RECAP_FRAMES = 210 // 7s — long enough to read 7 rows
-export const FINAL_FRAMES = 120 // 4s
+function Narration({ name }: { name: string }) {
+  return <Audio src={staticFile(`audio/${name}.mp3`)} />
+}
+
+// Per-card timing (in frames at 30fps). Each scene gets ~1s of headroom
+// past the narration so the audio finishes cleanly before the next cut.
+export const TITLE_FRAMES = 135 // 4.5s
+export const SUBTITLE_FRAMES = 105 // 3.5s
+export const CARD_FRAMES = 150 // 5s per sea card
+export const RECAP_FRAMES = 180 // 6s
+export const FINAL_FRAMES = 150 // 5s
 
 export function totalFrames(cardCount: number): number {
   return (
@@ -123,15 +130,20 @@ function Footer({ latestChapter }: { latestChapter: number | null }) {
   )
 }
 
-export function EastBlueWeakest({ cards, latestChapter }: EastBlueWeakestProps) {
+export function EastBlueWeakest({
+  cards,
+  latestChapter,
+}: EastBlueWeakestProps) {
   return (
     <AbsoluteFill style={{ background: '#000', fontFamily: SANS, color: 'white' }}>
       <Sequence durationInFrames={TITLE_FRAMES}>
         <TitleCard />
+        <Narration name="title" />
       </Sequence>
 
       <Sequence from={TITLE_FRAMES} durationInFrames={SUBTITLE_FRAMES}>
         <SubtitleCard />
+        <Narration name="subtitle" />
       </Sequence>
 
       {cards.map((card, i) => {
@@ -143,6 +155,7 @@ export function EastBlueWeakest({ cards, latestChapter }: EastBlueWeakestProps) 
             durationInFrames={CARD_FRAMES}
           >
             <SeaCardView card={card} index={i} total={cards.length} />
+            <Narration name={card.theme} />
           </Sequence>
         )
       })}
@@ -152,6 +165,7 @@ export function EastBlueWeakest({ cards, latestChapter }: EastBlueWeakestProps) 
         durationInFrames={RECAP_FRAMES}
       >
         <RecapCard cards={cards} />
+        <Narration name="recap" />
       </Sequence>
 
       <Sequence
@@ -164,6 +178,7 @@ export function EastBlueWeakest({ cards, latestChapter }: EastBlueWeakestProps) 
         durationInFrames={FINAL_FRAMES}
       >
         <FinalCard />
+        <Narration name="final" />
       </Sequence>
 
       <Footer latestChapter={latestChapter} />
