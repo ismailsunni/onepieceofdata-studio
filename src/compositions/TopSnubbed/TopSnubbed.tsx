@@ -1,34 +1,38 @@
 import {
   AbsoluteFill,
-  Audio,
   Img,
-  Sequence,
   interpolate,
+  Sequence,
   spring,
-  staticFile,
   useCurrentFrame,
   useVideoConfig,
 } from 'remotion'
 import type { SnubbedRow } from './fetch'
-
-// Instagram safe zones for 1080x1920 9:16 reels:
-//   - Top ~210px is covered by the username/profile chip
-//   - Bottom ~340px is covered by caption + like/comment/share + CTA
-// We push the title down to ~y=220 and the footer up to ~y=1600 so nothing
-// critical sits under IG's UI.
-const SAFE_TOP = 220
-const SAFE_BOTTOM = 320
 
 export type TopSnubbedProps = {
   rows: SnubbedRow[]
   latestChapter: number | null
 } & Record<string, unknown>
 
-// 10s reel at 30fps. Title settles in ~1s, then rows enter ~1.67s apart,
-// landing the #1 reveal just before the end.
-const TITLE_DURATION = 30
-const ROW_STAGGER = 50
+// 30fps timing.
+export const TITLE_FRAMES = 60 // 2s
+export const CARD_FRAMES = 60 // 2s per character
+export const RECAP_FRAMES = 108 // 3.6s — scan-7 ticks + boom on #1
+
+export function totalFrames(rowCount: number): number {
+  return TITLE_FRAMES + rowCount * CARD_FRAMES + RECAP_FRAMES
+}
+
+// IG safe zones (1080x1920): top ~210px username chip, bottom ~340px
+// caption + reactions + CTA. Layout uses these as content insets.
+const SAFE_TOP = 220
+const SAFE_BOTTOM = 320
+
+const SANS = 'system-ui, -apple-system, sans-serif'
 const ACCENT = '#fbbf24'
+const BG_GRADIENT =
+  'linear-gradient(180deg, #2a0b3a 0%, #5b1d6e 45%, #1a0a2e 100%)'
+const FOOTER_SITE = 'onepieceofdata.com'
 
 function initials(name: string): string {
   return name
@@ -57,7 +61,7 @@ function Avatar({
         height: size,
         borderRadius: '50%',
         overflow: 'hidden',
-        border: `3px solid ${accent}`,
+        border: `4px solid ${accent}`,
         background: 'rgba(0,0,0,0.5)',
         display: 'flex',
         alignItems: 'center',
@@ -65,7 +69,7 @@ function Avatar({
         fontSize: size * 0.38,
         fontWeight: 800,
         color: accent,
-        boxShadow: '0 6px 16px rgba(0,0,0,0.4)',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
         flexShrink: 0,
       }}
     >
@@ -86,52 +90,112 @@ function Avatar({
   )
 }
 
-export function TopSnubbed({ rows, latestChapter }: TopSnubbedProps) {
-  const frame = useCurrentFrame()
-  const { fps, durationInFrames } = useVideoConfig()
-
-  // Loop seam: fade everything to black in the last 10 frames so the cut
-  // back to a fully-rendered frame 0 isn't jarring on Instagram's loop.
-  const loopOpacity = interpolate(
-    frame,
-    [durationInFrames - 10, durationInFrames - 1],
-    [1, 0],
-    { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
-  )
-
-  // Audio cues match EastBlueWeakest's recap card: a multi-tick "scan"
-  // under the row reveals and a "boom" on the #1 Kin'emon hit.
-  // Row #5 (Hattori) enters at TITLE_DURATION; row #1 (Kin'emon) at
-  // TITLE_DURATION + (rows.length - 1) * ROW_STAGGER.
-  const scanStart = TITLE_DURATION
-  const boomFrame = TITLE_DURATION + Math.max(0, rows.length - 1) * ROW_STAGGER
-
+function Footer({ latestChapter }: { latestChapter: number | null }) {
   return (
-    <>
-      <Sequence from={scanStart}>
-        <Audio src={staticFile('sfx/scan-7.mp3')} />
-      </Sequence>
-      <Sequence from={boomFrame}>
-        <Audio src={staticFile('sfx/boom.mp3')} />
-      </Sequence>
-
-    <AbsoluteFill
+    <div
       style={{
-        background:
-          'linear-gradient(180deg, #2a0b3a 0%, #5b1d6e 45%, #1a0a2e 100%)',
-        fontFamily: 'system-ui, -apple-system, sans-serif',
-        color: 'white',
-        paddingLeft: 80,
-        paddingRight: 80,
-        paddingTop: SAFE_TOP,
-        paddingBottom: SAFE_BOTTOM,
-        opacity: loopOpacity,
+        position: 'absolute',
+        bottom: 20,
+        left: 0,
+        right: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 4,
+        fontFamily: SANS,
+        textShadow: '0 1px 4px rgba(0,0,0,0.6)',
+        pointerEvents: 'none',
+        zIndex: 10,
       }}
     >
       <div
         style={{
+          fontSize: 22,
+          fontWeight: 600,
+          letterSpacing: 4,
+          color: 'rgba(255,255,255,0.7)',
+          textTransform: 'lowercase',
+        }}
+      >
+        {FOOTER_SITE}
+      </div>
+      {latestChapter !== null && (
+        <div
+          style={{
+            fontSize: 16,
+            fontWeight: 500,
+            letterSpacing: 2,
+            color: 'rgba(255,255,255,0.5)',
+            textTransform: 'lowercase',
+          }}
+        >
+          data through chapter {latestChapter}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export function TopSnubbed({ rows, latestChapter }: TopSnubbedProps) {
+  return (
+    <AbsoluteFill style={{ background: '#000', fontFamily: SANS, color: 'white' }}>
+      <Sequence durationInFrames={TITLE_FRAMES}>
+        <TitleCard />
+      </Sequence>
+
+      {rows.map((row, i) => {
+        // Reveal #5 first → #1 last so the climax is the most-snubbed.
+        const reverseIdx = rows.length - 1 - i
+        const start = TITLE_FRAMES + reverseIdx * CARD_FRAMES
+        return (
+          <Sequence
+            key={row.id}
+            from={start}
+            durationInFrames={CARD_FRAMES}
+          >
+            <SnubbedCard row={row} rank={i + 1} />
+          </Sequence>
+        )
+      })}
+
+      <Sequence
+        from={TITLE_FRAMES + rows.length * CARD_FRAMES}
+        durationInFrames={RECAP_FRAMES}
+      >
+        <RecapCard rows={rows} />
+      </Sequence>
+
+      <Footer latestChapter={latestChapter} />
+    </AbsoluteFill>
+  )
+}
+
+function TitleCard() {
+  const frame = useCurrentFrame()
+  const { fps } = useVideoConfig()
+  const enter = spring({ frame, fps, config: { damping: 12, stiffness: 90 } })
+  const fade = interpolate(frame, [TITLE_FRAMES - 10, TITLE_FRAMES], [1, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  })
+  return (
+    <AbsoluteFill
+      style={{
+        background: BG_GRADIENT,
+        opacity: fade,
+        paddingLeft: 80,
+        paddingRight: 80,
+        paddingTop: SAFE_TOP,
+        paddingBottom: SAFE_BOTTOM,
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}
+    >
+      <div
+        style={{
+          transform: `scale(${0.9 + enter * 0.1})`,
+          opacity: enter,
           textAlign: 'center',
-          marginBottom: 64,
         }}
       >
         <div
@@ -141,178 +205,406 @@ export function TopSnubbed({ rows, latestChapter }: TopSnubbedProps) {
             color: ACCENT,
             textTransform: 'uppercase',
             fontWeight: 600,
+            marginBottom: 28,
           }}
         >
           Snubbed by the Fans
         </div>
         <div
           style={{
-            fontSize: 72,
-            fontWeight: 800,
+            fontSize: 116,
+            fontWeight: 900,
             lineHeight: 1.05,
-            marginTop: 12,
+            letterSpacing: -3,
           }}
         >
-          Most Chapters
+          Oda drew them.
           <br />
-          Yet No Top 100
+          <span style={{ color: ACCENT }}>Fans forgot them.</span>
         </div>
         <div
           style={{
-            fontSize: 26,
-            marginTop: 16,
-            color: 'rgba(255,255,255,0.75)',
-            fontWeight: 500,
+            marginTop: 36,
+            fontSize: 36,
+            fontWeight: 600,
+            letterSpacing: 1,
+            color: 'rgba(255,255,255,0.85)',
+            lineHeight: 1.3,
           }}
         >
-          Top 5 by chapter appearances · not in mid-term Top 100
+          Top snub: almost as many chapters
+          <br />
+          as <span style={{ color: ACCENT, fontWeight: 800 }}>Trafalgar Law</span>{' '}
+          (voted #5).
+        </div>
+        <div
+          style={{
+            marginTop: 28,
+            fontSize: 22,
+            fontWeight: 600,
+            letterSpacing: 4,
+            textTransform: 'uppercase',
+            color: 'rgba(255,255,255,0.65)',
+          }}
+        >
+          WT100 2026 · Mid-Term Ranking
         </div>
       </div>
+    </AbsoluteFill>
+  )
+}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-        {/* DOM order is rank #1 → #5 (Kin'emon at top, Hattori at bottom),
-            but the entrance animation staggers from bottom up so Hattori
-            appears first and the reveal builds toward Kin'emon. */}
-        {rows.map((row, idx) => {
-          const rank = idx + 1
-          const animOrder = rows.length - 1 - idx
-          const rowStart = TITLE_DURATION + animOrder * ROW_STAGGER
-          const enter = spring({
-            frame: frame - rowStart,
-            fps,
-            config: { damping: 14, stiffness: 120 },
-          })
-          return (
+function SnubbedCard({ row, rank }: { row: SnubbedRow; rank: number }) {
+  const frame = useCurrentFrame()
+  const { fps } = useVideoConfig()
+  const enter = spring({ frame, fps, config: { damping: 16, stiffness: 110 } })
+  const fade = interpolate(frame, [CARD_FRAMES - 8, CARD_FRAMES], [1, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  })
+
+  return (
+    <AbsoluteFill
+      style={{
+        background: BG_GRADIENT,
+        opacity: fade,
+          paddingLeft: 80,
+          paddingRight: 80,
+          paddingTop: SAFE_TOP,
+          paddingBottom: SAFE_BOTTOM,
+          flexDirection: 'column',
+          alignItems: 'center',
+        }}
+      >
+        {/* Rank badge */}
+        <div
+          style={{
+            opacity: enter,
+            fontSize: 36,
+            letterSpacing: 8,
+            color: ACCENT,
+            textTransform: 'uppercase',
+            fontWeight: 700,
+          }}
+        >
+          Snub #{rank}
+        </div>
+
+        {/* Portrait */}
+        <div
+          style={{
+            marginTop: 36,
+            transform: `scale(${0.85 + enter * 0.15})`,
+            opacity: enter,
+          }}
+        >
+          <Avatar
+            imageUrl={row.imageUrl}
+            name={row.name}
+            accent={ACCENT}
+            size={420}
+          />
+        </div>
+
+        {/* Name */}
+        <div
+          style={{
+            marginTop: 36,
+            fontSize: 78,
+            fontWeight: 900,
+            textAlign: 'center',
+            lineHeight: 1.05,
+            opacity: enter,
+            letterSpacing: -1,
+          }}
+        >
+          {row.name}
+        </div>
+
+        {/* Big appearance number */}
+        <div
+          style={{
+            marginTop: 32,
+            opacity: enter,
+            transform: `translateY(${(1 - enter) * 24}px)`,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+          }}
+        >
+          <div
+            style={{
+              fontSize: 180,
+              fontWeight: 900,
+              color: ACCENT,
+              lineHeight: 1,
+              fontVariantNumeric: 'tabular-nums',
+              textShadow: '0 8px 24px rgba(0,0,0,0.5)',
+            }}
+          >
+            {row.appearanceCount}
+          </div>
+          <div
+            style={{
+              fontSize: 28,
+              letterSpacing: 6,
+              textTransform: 'uppercase',
+              color: 'rgba(255,255,255,0.75)',
+              fontWeight: 600,
+              marginTop: 8,
+            }}
+          >
+            Chapters
+          </div>
+        </div>
+
+        {/* Comparison callout */}
+        {row.comparables.length > 0 && (
+          <div
+            style={{
+              marginTop: 32,
+              opacity: enter,
+              transform: `translateY(${(1 - enter) * 32}px)`,
+              background: 'rgba(0,0,0,0.45)',
+              border: `2px solid ${ACCENT}`,
+              borderRadius: 20,
+              padding: '20px 32px',
+              textAlign: 'center',
+              maxWidth: 880,
+            }}
+          >
             <div
-              key={row.id}
               style={{
-                opacity: enter,
-                transform: `translateX(${(1 - enter) * 80}px)`,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 28,
-                background: 'rgba(255,255,255,0.07)',
-                border: '1px solid rgba(255,255,255,0.14)',
-                borderRadius: 24,
-                padding: '20px 28px',
+                fontSize: 22,
+                letterSpacing: 4,
+                textTransform: 'uppercase',
+                color: 'rgba(255,255,255,0.65)',
+                fontWeight: 600,
               }}
             >
-              <div
-                style={{
-                  width: 72,
-                  fontSize: 56,
-                  fontWeight: 800,
-                  color: ACCENT,
-                  textAlign: 'center',
-                }}
-              >
-                #{rank}
-              </div>
-              <Avatar
-                imageUrl={row.imageUrl}
-                name={row.name}
-                accent={ACCENT}
-                size={132}
-              />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div
-                  style={{
-                    fontSize: 40,
-                    fontWeight: 700,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }}
-                >
-                  {row.name}
-                </div>
-                <div
-                  style={{
-                    fontSize: 22,
-                    color: 'rgba(255,255,255,0.7)',
-                    marginTop: 4,
-                    fontVariantNumeric: 'tabular-nums',
-                  }}
-                >
-                  ch. {row.firstChapter ?? '?'} – {row.lastChapter ?? '?'}
-                </div>
-                <div
-                  style={{
-                    fontSize: 22,
-                    color: ACCENT,
-                    marginTop: 4,
-                    fontWeight: 600,
-                    fontVariantNumeric: 'tabular-nums',
-                  }}
-                >
-                  Outranks {row.top100WithLessAppearances}/100 voted in
-                </div>
-                {row.comparables.length > 0 && (
-                  <div
-                    style={{
-                      fontSize: 20,
-                      color: 'rgba(255,255,255,0.7)',
-                      marginTop: 4,
-                      fontVariantNumeric: 'tabular-nums',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    Like{' '}
-                    {row.comparables
-                      .map((c) => `#${c.rank} ${c.name}`)
-                      .join(' · ')}
-                  </div>
-                )}
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div
-                  style={{
-                    fontSize: 56,
-                    fontWeight: 800,
-                    color: ACCENT,
-                    fontVariantNumeric: 'tabular-nums',
-                    lineHeight: 1,
-                  }}
-                >
-                  {row.appearanceCount}
-                </div>
-                <div
-                  style={{
-                    fontSize: 20,
-                    color: 'rgba(255,255,255,0.65)',
-                    letterSpacing: 2,
-                    textTransform: 'uppercase',
-                    marginTop: 6,
-                  }}
-                >
-                  Chapters
-                </div>
-              </div>
+              Similar appearances to
             </div>
-          )
-        })}
-      </div>
+            <div
+              style={{
+                marginTop: 10,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 6,
+                fontSize: 34,
+                fontWeight: 800,
+                lineHeight: 1.2,
+                fontVariantNumeric: 'tabular-nums',
+              }}
+            >
+              {row.comparables.map((c) => (
+                <div key={c.rank}>
+                  <span style={{ color: ACCENT }}>#{c.rank}</span> {c.name}{' '}
+                  <span style={{ color: 'rgba(255,255,255,0.6)' }}>
+                    ({c.appearances})
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+    </AbsoluteFill>
+  )
+}
 
-      {latestChapter != null && (
+// Recap: list ticks bottom-up so #1 Kin'emon lands last.
+const RECAP_SCAN_START = 18
+const RECAP_TICK_GAP = 8
+
+function RecapCard({ rows }: { rows: SnubbedRow[] }) {
+  const frame = useCurrentFrame()
+  const { fps, durationInFrames } = useVideoConfig()
+  const titleEnter = spring({
+    frame,
+    fps,
+    config: { damping: 14, stiffness: 110 },
+  })
+  const lastTick = RECAP_SCAN_START + (rows.length - 1) * RECAP_TICK_GAP
+  // After the bottom-up reveal lands on #1, hold briefly, then highlight #1.
+  const accentFrame = lastTick + 8
+  // Loop seam: fade the recap to black over the final 10 frames so the cut
+  // back to the title card on IG's loop doesn't pop.
+  const loopFade = interpolate(
+    frame,
+    [durationInFrames - 10, durationInFrames - 1],
+    [1, 0],
+    { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
+  )
+
+  return (
+    <AbsoluteFill
+      style={{
+        background: BG_GRADIENT,
+        paddingLeft: 80,
+        paddingRight: 80,
+        paddingTop: SAFE_TOP,
+        paddingBottom: SAFE_BOTTOM,
+        flexDirection: 'column',
+        opacity: loopFade,
+      }}
+    >
         <div
           style={{
-            position: 'absolute',
-            // Sits just above IG's caption/CTA overlay (~340px tall).
-            bottom: SAFE_BOTTOM - 60,
-            left: 0,
-            right: 0,
             textAlign: 'center',
-            fontSize: 22,
-            color: 'rgba(255,255,255,0.55)',
-            letterSpacing: 2,
-            textTransform: 'uppercase',
+            marginBottom: 36,
+            opacity: titleEnter,
           }}
         >
-          Source: One Piece of Data · through ch. {latestChapter}
+          <div
+            style={{
+              fontSize: 26,
+              letterSpacing: 8,
+              color: ACCENT,
+              textTransform: 'uppercase',
+              fontWeight: 600,
+            }}
+          >
+            WT100 2026 · The Snub List
+          </div>
+          <div
+            style={{
+              fontSize: 64,
+              fontWeight: 900,
+              lineHeight: 1.05,
+              marginTop: 8,
+            }}
+          >
+            All 5, ranked
+          </div>
         </div>
-      )}
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {rows.map((row, idx) => {
+            const rank = idx + 1
+            // Reveal bottom-up so #1 Kin'emon lands last with the boom.
+            const animOrder = rows.length - 1 - idx
+            const tickFrame = RECAP_SCAN_START + animOrder * RECAP_TICK_GAP
+            const enter = spring({
+              frame: frame - tickFrame,
+              fps,
+              config: { damping: 14, stiffness: 130 },
+            })
+            const isTop = rank === 1
+            // Subtle scale-pulse on #1 so it still reads as the climax even
+            // without an audio cue.
+            const accentScale = isTop
+              ? interpolate(
+                  frame,
+                  [accentFrame, accentFrame + 10, accentFrame + 28],
+                  [1, 1.05, 1],
+                  { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
+                )
+              : 1
+            return (
+              <div
+                key={row.id}
+                style={{
+                  opacity: enter,
+                  transform: `translateX(${(1 - enter) * 60}px) scale(${accentScale})`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 24,
+                  background: isTop
+                    ? 'rgba(251,191,36,0.18)'
+                    : 'rgba(255,255,255,0.07)',
+                  border: `2px solid ${isTop ? ACCENT : 'rgba(255,255,255,0.14)'}`,
+                  borderRadius: 20,
+                  padding: '16px 24px',
+                }}
+              >
+                <div
+                  style={{
+                    width: 60,
+                    fontSize: 44,
+                    fontWeight: 900,
+                    color: ACCENT,
+                    textAlign: 'center',
+                    fontVariantNumeric: 'tabular-nums',
+                  }}
+                >
+                  #{rank}
+                </div>
+                <Avatar
+                  imageUrl={row.imageUrl}
+                  name={row.name}
+                  accent={ACCENT}
+                  size={96}
+                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      fontSize: 36,
+                      fontWeight: 700,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {row.name}
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div
+                    style={{
+                      fontSize: 44,
+                      fontWeight: 900,
+                      color: ACCENT,
+                      fontVariantNumeric: 'tabular-nums',
+                      lineHeight: 1,
+                    }}
+                  >
+                    {row.appearanceCount}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 16,
+                      letterSpacing: 2,
+                      textTransform: 'uppercase',
+                      color: 'rgba(255,255,255,0.6)',
+                      marginTop: 4,
+                    }}
+                  >
+                    Chapters
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        <div
+          style={{
+            marginTop: 32,
+            textAlign: 'center',
+            opacity: titleEnter,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 22,
+              letterSpacing: 4,
+              textTransform: 'uppercase',
+              color: 'rgba(255,255,255,0.65)',
+              fontWeight: 600,
+            }}
+          >
+            Vote in the final round
+          </div>
+          <div
+            style={{
+              marginTop: 6,
+              fontSize: 30,
+              fontWeight: 800,
+              color: ACCENT,
+              letterSpacing: 1,
+            }}
+          >
+            onepiecewt100-2026.com
+          </div>
+        </div>
     </AbsoluteFill>
-    </>
   )
 }
