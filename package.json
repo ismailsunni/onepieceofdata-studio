@@ -7,6 +7,7 @@
     "studio": "remotion studio src/index.ts",
     "render": "remotion render src/index.ts",
     "narrate": "node --env-file=.env --import tsx scripts/generate-narration.ts",
+    "carousel": "node --env-file=.env --import tsx scripts/render-carousel.ts",
     "voices": "node --env-file=.env --import tsx scripts/list-voices.ts",
     "lint": "tsc --noEmit",
     "upgrade": "remotion upgrade"

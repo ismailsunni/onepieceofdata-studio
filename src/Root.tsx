@@ -15,6 +15,12 @@ import {
   totalFrames as topSnubbedFrames,
 } from './compositions/TopSnubbed/TopSnubbed'
 import { loadSnubbedSnapshot } from './compositions/TopSnubbed/fetch'
+import {
+  Top100Wishlist,
+  SLIDE_WIDTH,
+  SLIDE_HEIGHT,
+} from './compositions/Top100Wishlist/Top100Wishlist'
+import { loadWishlistSnapshot } from './compositions/Top100Wishlist/fetch'
 
 // Instagram Reels: 9:16 portrait, 1080x1920, 30fps.
 const REEL_WIDTH = 1080
@@ -72,6 +78,23 @@ export function Root() {
           return {
             props: { ...props, rows, latestChapter: throughChapter },
             durationInFrames: topSnubbedFrames(rows.length),
+          }
+        }}
+      />
+      <Composition
+        id="Top100Wishlist"
+        component={Top100Wishlist}
+        width={SLIDE_WIDTH}
+        height={SLIDE_HEIGHT}
+        // Carousel: 1 frame per slide. Render with `npm run carousel`.
+        fps={1}
+        durationInFrames={1}
+        defaultProps={{ slides: [], latestChapter: null }}
+        calculateMetadata={async ({ props }) => {
+          const { slides, latestChapter } = await loadWishlistSnapshot()
+          return {
+            props: { ...props, slides, latestChapter },
+            durationInFrames: Math.max(slides.length, 1),
           }
         }}
       />
