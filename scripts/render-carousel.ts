@@ -46,6 +46,9 @@ async function main() {
       output: file,
       frame,
       imageFormat: 'png',
+      // 2× super-sample for crisper text and portraits.
+      // Output dimensions become 2160×2700.
+      scale: 2,
       envVariables: {
         SUPABASE_URL: process.env.SUPABASE_URL ?? '',
         SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY ?? '',
