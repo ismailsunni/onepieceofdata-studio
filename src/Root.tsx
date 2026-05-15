@@ -21,6 +21,8 @@ import {
   SLIDE_HEIGHT,
 } from './compositions/Top100Wishlist/Top100Wishlist'
 import { loadWishlistSnapshot } from './compositions/Top100Wishlist/fetch'
+import { First100Chapters } from './compositions/First100Chapters/First100Chapters'
+import { loadFirst100Snapshot } from './compositions/First100Chapters/fetch'
 
 // Instagram Reels: 9:16 portrait, 1080x1920, 30fps.
 const REEL_WIDTH = 1080
@@ -78,6 +80,22 @@ export function Root() {
           return {
             props: { ...props, rows, latestChapter: throughChapter },
             durationInFrames: topSnubbedFrames(rows.length),
+          }
+        }}
+      />
+      <Composition
+        id="First100Chapters"
+        component={First100Chapters}
+        width={SLIDE_WIDTH}
+        height={SLIDE_HEIGHT}
+        fps={1}
+        durationInFrames={1}
+        defaultProps={{ slides: [], latestChapter: null }}
+        calculateMetadata={async ({ props }) => {
+          const { slides, latestChapter } = await loadFirst100Snapshot()
+          return {
+            props: { ...props, slides, latestChapter },
+            durationInFrames: Math.max(slides.length, 1),
           }
         }}
       />

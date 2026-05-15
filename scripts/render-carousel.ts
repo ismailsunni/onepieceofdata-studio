@@ -1,7 +1,5 @@
-// Renders every slide of the Top100Wishlist composition as a separate PNG
-// (out/carousel/slide-NN.png). One frame == one slide at fps=1.
-//
-// Run: npm run carousel
+// Renders every slide of a carousel composition (fps=1, one frame = one PNG).
+// Run: npm run carousel [-- <CompositionId>]   (defaults to Top100Wishlist)
 
 import path from 'node:path'
 import { mkdir, rm } from 'node:fs/promises'
@@ -12,7 +10,9 @@ import { renderStill, selectComposition } from '@remotion/renderer'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname, '..')
 const ENTRY = path.join(ROOT, 'src', 'index.ts')
-const OUT_DIR = path.join(ROOT, 'out', 'carousel')
+
+const COMPOSITION_ID = process.argv[2] ?? 'Top100Wishlist'
+const OUT_DIR = path.join(ROOT, 'out', 'carousel', COMPOSITION_ID)
 
 async function main() {
   await rm(OUT_DIR, { recursive: true, force: true })
@@ -21,10 +21,10 @@ async function main() {
   console.log('Bundling…')
   const serveUrl = await bundle({ entryPoint: ENTRY })
 
-  console.log('Resolving composition (fetches Supabase data)…')
+  console.log(`Resolving composition "${COMPOSITION_ID}" (fetches Supabase data)…`)
   const composition = await selectComposition({
     serveUrl,
-    id: 'Top100Wishlist',
+    id: COMPOSITION_ID,
     // calculateMetadata reads process.env.SUPABASE_*; pass them through.
     envVariables: {
       SUPABASE_URL: process.env.SUPABASE_URL ?? '',
