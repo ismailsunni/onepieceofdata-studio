@@ -183,6 +183,14 @@ export const SLIDES: SlideSpec[] = [
     title: 'Thank you.',
     subtitle: 'Charts, rankings, and chapter stats every week.',
     handle: '@onepieceofdata',
-    stillWaiting: ['Buchi', 'Sham', 'Mornin', 'Higuma', 'Ririka'],
+    stillWaiting: [
+      'Banchina',
+      'Ipponmatsu',
+      'Lord of the Coast',
+      'Richie',
+      'Nezumi',
+      'Momoo',
+      'Carne',
+    ],
   },
 ]

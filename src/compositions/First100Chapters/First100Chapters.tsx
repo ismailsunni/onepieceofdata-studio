@@ -689,38 +689,49 @@ function ThanksSlide({
         >
           Still waiting on
         </div>
-        <div
-          style={{
-            marginTop: 18,
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: 22,
-            justifyContent: 'center',
-          }}
-        >
-          {stillWaiting.map((c, i) => (
+        {(() => {
+          const tile = 140
+          const gap = 26
+          const perRow = 4
+          return (
             <div
-              key={c.id + i}
               style={{
+                marginTop: 18,
                 display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 8,
+                flexWrap: 'wrap',
+                gap,
+                justifyContent: 'center',
+                maxWidth: perRow * tile + (perRow - 1) * gap,
               }}
             >
-              <Avatar character={c} size={120} />
-              <div
-                style={{
-                  fontSize: 22,
-                  fontWeight: 700,
-                  letterSpacing: -0.5,
-                }}
-              >
-                {c.name}
-              </div>
+              {stillWaiting.map((c, i) => (
+                <div
+                  key={c.id + i}
+                  style={{
+                    width: tile,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 8,
+                  }}
+                >
+                  <Avatar character={c} size={tile} />
+                  <div
+                    style={{
+                      fontSize: 22,
+                      fontWeight: 700,
+                      letterSpacing: -0.5,
+                      textAlign: 'center',
+                      lineHeight: 1.1,
+                    }}
+                  >
+                    {c.name}
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          )
+        })()}
       </div>
     </SlideFrame>
   )
