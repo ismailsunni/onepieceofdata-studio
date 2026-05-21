@@ -18,11 +18,8 @@ export const RACE_WIDTH = 1080
 export const RACE_HEIGHT = 1920
 export const RACE_FPS = 30
 
-const TITLE_FADE_FRAMES = 15 // 0.5s — title opacity ramp, race plays underneath
 const RACE_FRAMES = 840 // 28.0s — main playback, starts from frame 0
 const HOLD_FRAMES = 60 // 2.0s — final freeze + CTA
-// Race plays from frame 0 so the early bars aren't visually frozen while
-// the title settles; title just fades in over the first half second.
 
 const TOP_N = 10
 const ROW_HEIGHT = 130
@@ -259,12 +256,10 @@ function Header({
   chapter,
   arcTitle,
   windowSize,
-  introT,
 }: {
   chapter: number
   arcTitle: string | null
   windowSize: number
-  introT: number
 }) {
   return (
     <div
@@ -273,7 +268,6 @@ function Header({
         top: 70,
         left: RACE_LEFT,
         right: RACE_RIGHT,
-        opacity: introT,
       }}
     >
       <div
@@ -398,10 +392,9 @@ export function AppearanceRace({ snapshot }: AppearanceRaceProps) {
   for (const c of snapshot.characters) charMap.set(c.id, c)
 
   const raceFrames = durationInFrames - HOLD_FRAMES
-  const introT = Math.min(1, frame / TITLE_FADE_FRAMES)
 
   // Map playback-frame → race-frame index (float). Race starts at frame 0
-  // (no leading freeze); title fades in over TITLE_FADE_FRAMES in parallel.
+  // (no leading freeze).
   let raceFloat: number
   if (frame < raceFrames) {
     raceFloat = interpolate(
@@ -451,7 +444,6 @@ export function AppearanceRace({ snapshot }: AppearanceRaceProps) {
         chapter={currentChapter}
         arcTitle={arcTitleFor(currentChapter, snapshot.arcs)}
         windowSize={snapshot.windowSize}
-        introT={introT}
       />
 
       {rows.slice(0, TOP_N + 1).map((row, i) => (
