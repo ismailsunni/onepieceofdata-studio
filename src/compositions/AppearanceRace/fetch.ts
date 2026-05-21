@@ -98,11 +98,12 @@ export async function loadAppearanceRaceSnapshot(): Promise<AppearanceRaceSnapsh
     hysteresisMinRank: 4,
   })
 
-  // Sample every Nth chapter to bound frame count. The reel is 12s @ 30fps
-  // = 360 playback frames; with ~1145 chapters and ~300 race-playback
-  // frames we want ~4 chapters per sample. Pick 3 to over-sample slightly
-  // and let the composition decimate if it wants smoother motion.
-  const sampleEvery = 3
+  // Sample every Nth chapter. With a 30-chapter window, sampling every 10
+  // gives ~3 samples per window — enough to capture the rolling motion
+  // without inheriting score jitter from one-off cameos. Yields ~115
+  // sampled frames across ~1145 chapters, which over the 30s reel works
+  // out to each state holding ~230 ms on screen (readable).
+  const sampleEvery = 10
   const sampled: RaceFrame[] = []
   for (let i = 0; i < result.frames.length; i += sampleEvery) {
     sampled.push(result.frames[i])
