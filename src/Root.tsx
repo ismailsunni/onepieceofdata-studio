@@ -30,6 +30,11 @@ import {
   totalFramesFor as appearanceRaceFrames,
 } from './compositions/AppearanceRace/AppearanceRace'
 import { loadAppearanceRaceSnapshot } from './compositions/AppearanceRace/fetch'
+import {
+  ArcLengthRanking,
+  totalFramesFor as arcLengthRankingFrames,
+} from './compositions/ArcLengthRanking/ArcLengthRanking'
+import { loadArcRankingSnapshot } from './compositions/ArcLengthRanking/fetch'
 
 // Instagram Reels: 9:16 portrait, 1080x1920, 30fps.
 const REEL_WIDTH = 1080
@@ -135,6 +140,22 @@ export function Root() {
           return {
             props: { ...props, snapshot },
             durationInFrames: appearanceRaceFrames(snapshot),
+          }
+        }}
+      />
+      <Composition
+        id="ArcLengthRanking"
+        component={ArcLengthRanking}
+        width={REEL_WIDTH}
+        height={REEL_HEIGHT}
+        fps={REEL_FPS}
+        durationInFrames={490}
+        defaultProps={{ snapshot: null }}
+        calculateMetadata={async ({ props }) => {
+          const snapshot = await loadArcRankingSnapshot()
+          return {
+            props: { ...props, snapshot },
+            durationInFrames: arcLengthRankingFrames(snapshot),
           }
         }}
       />
