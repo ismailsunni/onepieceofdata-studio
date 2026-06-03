@@ -31,14 +31,14 @@ const SCORE_COL = 170
 const BAR_PADDING = 14
 
 const COLOR = {
-  bg: '#0a0a0c',
-  panel: '#14171f',
-  rowBg: '#1a1d24',
-  text: '#f5f5f5',
-  subtle: '#8a8d96',
-  rank: '#5e616c',
-  accent: '#ff6a13', // neon orange
-  accentSoft: 'rgba(255, 106, 19, 0.18)',
+  bg: '#1565C0',
+  panel: '#1976D2',
+  rowBg: '#0D47A1',
+  text: '#ffffff',
+  subtle: '#BBDEFB',
+  rank: '#FFD54F',
+  accent: '#FF7A1A', // neon orange
+  accentSoft: 'rgba(255, 122, 26, 0.22)',
 }
 
 export type AppearanceRaceProps = {
@@ -399,7 +399,7 @@ function Header({
           letterSpacing: '-0.02em',
         }}
       >
-        Who ran One Piece
+        Who stole the spotlight
         <br />
         <span style={{ color: COLOR.subtle, fontWeight: 600, fontSize: 26 }}>
           pre-timeskip · besides the Straw Hats?
