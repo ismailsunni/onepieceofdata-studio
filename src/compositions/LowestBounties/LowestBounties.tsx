@@ -23,7 +23,8 @@ const ROW_STAGGER = 16
 const CENTER_HOLD = 15
 const TITLE_SETTLED = 43
 const SETTLE = 24
-const END_HOLD = 60
+// Short end hold (~1.2s) — reels loop, so a long freeze just reads as dead air.
+const END_HOLD = 36
 
 // Reveal runs bottom-up (#N first, #1 last) so the absurdly cheap #1 lands as
 // the punchline. Duration = title + every row staggered in + a hold to read.

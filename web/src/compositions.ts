@@ -6,6 +6,7 @@ import type { ComponentType } from 'react'
 
 import {
   TopBounties,
+  totalFramesFor as topBountiesFrames,
   type TopBountiesProps,
 } from '../../src/compositions/TopBounties/TopBounties'
 import {
@@ -251,13 +252,17 @@ const ENTRIES: CompositionEntry[] = [
     status: 'draft',
     tags: ['bounties', 'ranking'],
     title: 'Top Bounties',
-    description: 'Highest active bounties as a 12s reel.',
+    description:
+      'The 10 highest bounties, revealed bottom-up to Gol D. Roger — with the seven-way ฿3.0B tie collapsed into one rank.',
     component: TopBounties as ComponentType<Record<string, unknown>>,
     width: REEL_WIDTH,
     height: REEL_HEIGHT,
     fps: REEL_FPS,
     snapshotPath: 'snapshots/TopBounties.json',
-    durationInFrames: () => REEL_FPS * 12,
+    durationInFrames: (snap) => {
+      const entries = (snap as { entries?: unknown[] }).entries ?? []
+      return topBountiesFrames(entries.length)
+    },
   },
 ]
 

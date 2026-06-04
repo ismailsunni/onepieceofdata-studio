@@ -68,7 +68,7 @@ async function main() {
   const tasks: { id: string; run: () => Promise<unknown> }[] = [
     {
       id: 'TopBounties',
-      run: async () => ({ rows: await fetchTopBounties(10) }),
+      run: async () => ({ entries: await fetchTopBounties(10) }),
     },
     {
       id: 'LowestBounties',

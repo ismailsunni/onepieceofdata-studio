@@ -1,5 +1,9 @@
 import { Composition } from 'remotion'
-import { TopBounties, TopBountiesProps } from './compositions/TopBounties/TopBounties'
+import {
+  TopBounties,
+  TopBountiesProps,
+  totalFramesFor as topBountiesFrames,
+} from './compositions/TopBounties/TopBounties'
 import { fetchTopBounties } from './compositions/TopBounties/fetch'
 import {
   LowestBounties,
@@ -55,11 +59,14 @@ export function Root() {
         width={REEL_WIDTH}
         height={REEL_HEIGHT}
         fps={REEL_FPS}
-        durationInFrames={REEL_FPS * 12}
-        defaultProps={{ rows: [] }}
+        durationInFrames={topBountiesFrames(10)}
+        defaultProps={{ entries: [] }}
         calculateMetadata={async ({ props }) => {
-          const rows = await fetchTopBounties(10)
-          return { props: { ...props, rows } }
+          const entries = await fetchTopBounties(10)
+          return {
+            props: { ...props, entries },
+            durationInFrames: topBountiesFrames(entries.length),
+          }
         }}
       />
 

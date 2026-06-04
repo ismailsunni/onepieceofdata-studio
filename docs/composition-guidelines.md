@@ -26,7 +26,9 @@ non-standard reels) so `web/src/compositions.ts` can import them.
   row/slide count varies. Export a `totalFramesFor(count)` (or `totalFrames`)
   helper and use it in both `Root.tsx` (`durationInFrames` /
   `calculateMetadata`) and the web registry.
-- Budget: brief title in, staggered reveal, a readable end-hold (~2–3s).
+- Budget: brief title in, staggered reveal, then a **short end hold (~1–1.5s)**.
+  Reels loop, so a long static tail just reads as dead air and hurts
+  watch-through — let the loop handle re-reads instead of freezing.
 
 ## 3. Footer watermark — **required**
 
