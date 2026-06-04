@@ -35,6 +35,10 @@ jobs:
         run: npm run web:snapshots:ci
 
       - name: Build static site
+        # Served at the root of the custom domain (viz.onepieceofdata.com),
+        # so override the default project-pages base path.
+        env:
+          VITE_BASE: /
         run: npm run web:build
 
       - name: Upload Pages artifact
