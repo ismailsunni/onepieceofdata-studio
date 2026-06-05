@@ -127,7 +127,7 @@ export function App() {
     <main className="page">
       <header className="header">
         <div className="header-top">
-          <h1>One Piece of Data — Reels Preview</h1>
+          <h1>One Piece of Data — Studio</h1>
           <button
             type="button"
             className="theme-toggle"
@@ -139,9 +139,9 @@ export function App() {
           </button>
         </div>
         <p>
-          Live previews of the data-driven reels and carousels rendered in
-          Remotion. Snapshots are baked at build time; play locally for full
-          motion, scrub to inspect single frames.
+          Data-driven reels and carousels about the world of One Piece — every
+          chart, ranking, and number pulled straight from the dataset. New drops
+          land here.
         </p>
         <p className="header-cta">
           Want to explore the data, run custom analytics, or build your own
