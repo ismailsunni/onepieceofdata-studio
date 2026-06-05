@@ -138,14 +138,11 @@ export function App() {
             <ThemeIcon theme={theme} />
           </button>
         </div>
-        <p>
-          Data-driven reels and carousels about the world of One Piece — every
-          chart, ranking, and number pulled straight from the dataset. New drops
-          land here.
-        </p>
         <p className="header-cta">
-          Want to explore the data, run custom analytics, or build your own
-          visualizations? Head to{' '}
+          Data-driven reels and carousels about the world of One Piece — every
+          chart, ranking, and number pulled straight from the dataset, with new
+          drops landing here. Want to dig into the data yourself, run custom
+          analytics, or build your own visualizations? Head to{' '}
           <a href="https://onepieceofdata.com" target="_blank" rel="noreferrer">
             onepieceofdata.com
           </a>
