@@ -110,7 +110,7 @@ const ENTRIES: CompositionEntry[] = [
       publishedAt: '2026-06-10',
     },
     tags: ['world-cup', 'timeline', 'football', 'arcs'],
-    title: 'One Piece × The World Cup',
+    title: 'One Piece × World Cup',
     description:
       'Every FIFA World Cup since the manga began (1998 → 2022), each paired with the arc the Straw Hats were sailing through when the world watched.',
     component: WorldCupOnePiece as ComponentType<Record<string, unknown>>,
