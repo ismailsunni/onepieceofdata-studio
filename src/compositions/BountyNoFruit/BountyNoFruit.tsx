@@ -33,8 +33,6 @@ export function totalFramesFor(rowCount: number): number {
 }
 
 const AVATAR = 92
-const CLUSTER_AVATAR = 88
-const CLUSTER_COLS = 4
 
 export function BountyNoFruit({ entries }: BountyNoFruitProps) {
   const frame = useCurrentFrame()
@@ -99,13 +97,26 @@ export function BountyNoFruit({ entries }: BountyNoFruitProps) {
         >
           No Devil Fruit
         </div>
+        <div
+          style={{
+            fontSize: 24,
+            fontWeight: 600,
+            marginTop: 16,
+            color: 'rgba(255,255,255,0.85)',
+            textShadow: '0 1px 4px rgba(0,0,0,0.35)',
+          }}
+        >
+          (#) = overall rank, Devil Fruit users included
+        </div>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {entries.map((entry, i) => {
           // i === 0 is the highest bounty and reveals last — the climax.
           const isTop = i === 0
-          const isTie = entry.members.length > 1
+          const member = entry.members[0]
+          // Roger tops both boards, so (#1) would be redundant — hide it.
+          const showOverall = entry.overallRank !== entry.rank
           const rowStart =
             TITLE_DURATION + (entries.length - 1 - i) * ROW_STAGGER
           const enter = spring({
@@ -122,7 +133,7 @@ export function BountyNoFruit({ entries }: BountyNoFruitProps) {
 
           return (
             <div
-              key={entry.rank}
+              key={member.id}
               style={{
                 opacity: enter,
                 transform: `translateX(${(1 - enter) * -60}px)`,
@@ -159,61 +170,60 @@ export function BountyNoFruit({ entries }: BountyNoFruitProps) {
                 {entry.rank}
               </div>
 
-              {isTie ? (
-                <Cluster members={entry.members} />
-              ) : (
-                <Avatar
-                  imageUrl={entry.members[0].imageUrl}
-                  name={entry.members[0].name}
-                  ring={isTop ? '#b45309' : '#ffffff'}
-                />
-              )}
+              <Avatar
+                imageUrl={member.imageUrl}
+                name={member.name}
+                ring={isTop ? '#b45309' : '#ffffff'}
+              />
 
               <div style={{ flex: 1, minWidth: 0 }}>
-                {isTie ? (
-                  <div
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'baseline',
+                    gap: 12,
+                    minWidth: 0,
+                  }}
+                >
+                  <span
                     style={{
-                      fontSize: 30,
+                      fontSize: 48,
                       fontWeight: 700,
-                      color: '#ffffff',
-                      fontVariantNumeric: 'tabular-nums',
-                      textShadow: '0 1px 4px rgba(0,0,0,0.3)',
+                      color: isTop ? '#1a0606' : '#ffffff',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      textShadow: isTop ? 'none' : '0 1px 4px rgba(0,0,0,0.3)',
                     }}
                   >
-                    #{entry.overallRank} overall
-                  </div>
-                ) : (
-                  <>
-                    <div
+                    {member.name.replace(/_/g, ' ')}
+                  </span>
+                  {showOverall && (
+                    <span
                       style={{
-                        fontSize: 48,
+                        fontSize: 28,
                         fontWeight: 700,
-                        color: isTop ? '#1a0606' : '#ffffff',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        textShadow: isTop
-                          ? 'none'
-                          : '0 1px 4px rgba(0,0,0,0.3)',
-                      }}
-                    >
-                      {entry.members[0].name.replace(/_/g, ' ')}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: isTop ? 25 : 28,
-                        fontWeight: 700,
-                        color: isTop ? '#b45309' : 'rgba(255,255,255,0.85)',
-                        marginTop: 2,
+                        color: isTop ? '#b45309' : 'rgba(255,255,255,0.7)',
+                        flexShrink: 0,
                         fontVariantNumeric: 'tabular-nums',
                         textShadow: isTop ? 'none' : '0 1px 4px rgba(0,0,0,0.3)',
                       }}
                     >
-                      {isTop
-                        ? `the highest bounty in history · #${entry.overallRank} overall`
-                        : `#${entry.overallRank} overall`}
-                    </div>
-                  </>
+                      (#{entry.overallRank})
+                    </span>
+                  )}
+                </div>
+                {isTop && (
+                  <div
+                    style={{
+                      fontSize: 25,
+                      fontWeight: 700,
+                      color: '#b45309',
+                      marginTop: 2,
+                    }}
+                  >
+                    the highest bounty in history
+                  </div>
                 )}
               </div>
 
@@ -281,30 +291,6 @@ function Avatar({
           {name.charAt(0)}
         </span>
       )}
-    </div>
-  )
-}
-
-// Avatar grid for a shared rank (the ฿1.8B Dorry & Brogy tie) — every member,
-// wrapped over rows so the card fills its height like a feature card.
-function Cluster({ members }: { members: BountyEntry['members'] }) {
-  return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: `repeat(${CLUSTER_COLS}, ${CLUSTER_AVATAR}px)`,
-        gap: 10,
-      }}
-    >
-      {members.map((m) => (
-        <Avatar
-          key={m.id}
-          imageUrl={m.imageUrl}
-          name={m.name}
-          ring="#ffffff"
-          size={CLUSTER_AVATAR}
-        />
-      ))}
     </div>
   )
 }

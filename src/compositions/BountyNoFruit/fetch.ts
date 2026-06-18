@@ -6,16 +6,17 @@ export interface BountyMember {
   imageUrl: string | null
 }
 
-// One rank in the leaderboard. Usually a single member, but a rank can be
-// shared — Dorry and Brogy both sit at exactly ฿1,800,000,000 — so a rank
-// holds every member at that bounty rather than arbitrarily picking one.
+// One row in the leaderboard — exactly one character. Ties get one row each
+// but share a rank (competition ranking): Dorry and Brogy both sit at
+// ฿1,800,000,000, so both are rank 5 and the next distinct bounty is rank 7.
 export interface BountyEntry {
-  // Rank within this no-Devil-Fruit leaderboard (1..rankCount).
+  // Competition rank within this no-Devil-Fruit leaderboard — shared by ties.
   rank: number
   // Rank of this bounty among ALL characters, Devil Fruit users included —
   // so the audience can see how far the fruit users push these names down.
   overallRank: number
   bounty: number
+  // Always a single-element array (kept as an array for the renderer's sake).
   members: BountyMember[]
 }
 
@@ -44,9 +45,10 @@ async function fetchFruitUserIds(): Promise<Set<string>> {
   return new Set((data ?? []).map((r) => String(r.character_id)))
 }
 
-// The highest bounties among characters with NO Devil Fruit, collapsed into
-// `rankCount` distinct-amount ranks. Members sharing a bounty share a rank
-// (competition ranking) — e.g. Dorry & Brogy both at ฿1.8B.
+// The highest bounties among characters with NO Devil Fruit, emitted one row
+// per character for ranks 1..`rankCount`. Characters sharing a bounty share a
+// rank (competition ranking) — e.g. Dorry & Brogy both at ฿1.8B are both rank
+// 5, so the next row is rank 7 and rank 11 falls outside a "top 10".
 export async function fetchBountyNoFruit(rankCount = 10): Promise<BountyEntry[]> {
   const fruitUsers = await fetchFruitUserIds()
 
@@ -86,24 +88,47 @@ export async function fetchBountyNoFruit(rankCount = 10): Promise<BountyEntry[]>
   // Dense rank of a bounty value across the full leaderboard (1-based).
   const overallRankOf = (bounty: number) => allOrder.indexOf(bounty) + 1
 
+  // The first `rankCount` bounty groups are enough to cover every row ranked
+  // `rankCount` or better — a tie only ever pushes ranks higher, never lower.
   const topValues = order.slice(0, rankCount)
 
+  // Flatten the chosen bounty groups into one row per character, assigning a
+  // shared competition rank to each group (so a 2-way tie at rank 5 makes the
+  // next row rank 7). `seen` tracks how many rows precede each group.
+  type Row = { rank: number; overallRank: number; bounty: number; id: string; name: string }
+  const rows: Row[] = []
+  let seen = 0
+  for (const bounty of topValues) {
+    const members = groups
+      .get(bounty)!
+      .slice()
+      .sort((a, b) => a.name.localeCompare(b.name))
+    const rank = seen + 1
+    const overallRank = overallRankOf(bounty)
+    for (const m of members) {
+      rows.push({ rank, overallRank, bounty, id: m.id, name: m.name })
+    }
+    seen += members.length
+  }
+
+  // Keep only ranks 1..rankCount. A tie can spill a row past the cut-off —
+  // e.g. with the ฿1.8B tie at 5, rank 11 (Oars Jr.) drops off a "top 10".
+  const ranked = rows.filter((row) => row.rank <= rankCount)
+
   return Promise.all(
-    topValues.map(async (bounty, i) => {
-      const raw = groups
-        .get(bounty)!
-        .slice()
-        .sort((a, b) => a.name.localeCompare(b.name))
-      const members = await Promise.all(
-        raw.map(async (m) => ({
-          id: m.id,
-          name: m.name,
-          imageUrl: (await imageExists(characterImageUrl(m.id)))
-            ? characterImageUrl(m.id)
+    ranked.map(async (row) => ({
+      rank: row.rank,
+      overallRank: row.overallRank,
+      bounty: row.bounty,
+      members: [
+        {
+          id: row.id,
+          name: row.name,
+          imageUrl: (await imageExists(characterImageUrl(row.id)))
+            ? characterImageUrl(row.id)
             : null,
-        }))
-      )
-      return { rank: i + 1, overallRank: overallRankOf(bounty), bounty, members }
-    })
+        },
+      ],
+    }))
   )
 }
