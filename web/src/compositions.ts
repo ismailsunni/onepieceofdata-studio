@@ -10,6 +10,10 @@ import {
   type TopBountiesProps,
 } from '../../src/compositions/TopBounties/TopBounties'
 import {
+  BountyNoFruit,
+  totalFramesFor as bountyNoFruitFrames,
+} from '../../src/compositions/BountyNoFruit/BountyNoFruit'
+import {
   LowestBounties,
   totalFramesFor as lowestBountiesFrames,
 } from '../../src/compositions/LowestBounties/LowestBounties'
@@ -99,6 +103,25 @@ export interface CompositionEntry {
 // Order in this array is irrelevant — COMPOSITIONS is sorted newest-first by
 // `createdAt` at the bottom of the file.
 const ENTRIES: CompositionEntry[] = [
+  {
+    id: 'BountyNoFruit',
+    kind: 'reel',
+    createdAt: '2026-06-18',
+    status: 'draft',
+    tags: ['bounties', 'devil-fruit', 'ranking'],
+    title: 'Top Bounties — No Devil Fruit',
+    description:
+      'The 10 highest bounties among characters who never ate a Devil Fruit — raw skill only. Revealed bottom-up to Gol D. Roger, the highest bounty in history.',
+    component: BountyNoFruit as ComponentType<Record<string, unknown>>,
+    width: REEL_WIDTH,
+    height: REEL_HEIGHT,
+    fps: REEL_FPS,
+    snapshotPath: 'snapshots/BountyNoFruit.json',
+    durationInFrames: (snap) => {
+      const entries = (snap as { entries?: unknown[] }).entries ?? []
+      return bountyNoFruitFrames(entries.length)
+    },
+  },
   {
     id: 'WorldCupOnePiece',
     kind: 'carousel',

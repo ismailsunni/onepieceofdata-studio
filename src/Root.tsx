@@ -6,6 +6,11 @@ import {
 } from './compositions/TopBounties/TopBounties'
 import { fetchTopBounties } from './compositions/TopBounties/fetch'
 import {
+  BountyNoFruit,
+  totalFramesFor as bountyNoFruitFrames,
+} from './compositions/BountyNoFruit/BountyNoFruit'
+import { fetchBountyNoFruit } from './compositions/BountyNoFruit/fetch'
+import {
   LowestBounties,
   totalFramesFor as lowestBountiesFrames,
 } from './compositions/LowestBounties/LowestBounties'
@@ -68,6 +73,23 @@ export function Root() {
           return {
             props: { ...props, entries },
             durationInFrames: topBountiesFrames(entries.length),
+          }
+        }}
+      />
+
+      <Composition
+        id="BountyNoFruit"
+        component={BountyNoFruit}
+        width={REEL_WIDTH}
+        height={REEL_HEIGHT}
+        fps={REEL_FPS}
+        durationInFrames={bountyNoFruitFrames(10)}
+        defaultProps={{ entries: [] }}
+        calculateMetadata={async ({ props }) => {
+          const entries = await fetchBountyNoFruit(10)
+          return {
+            props: { ...props, entries },
+            durationInFrames: bountyNoFruitFrames(entries.length),
           }
         }}
       />

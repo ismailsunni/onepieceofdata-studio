@@ -34,6 +34,7 @@ globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
 }) as typeof fetch
 
 import { fetchTopBounties } from '../src/compositions/TopBounties/fetch'
+import { fetchBountyNoFruit } from '../src/compositions/BountyNoFruit/fetch'
 import { fetchLowestBounties } from '../src/compositions/LowestBounties/fetch'
 import {
   fetchSeaCards,
@@ -70,6 +71,10 @@ async function main() {
     {
       id: 'TopBounties',
       run: async () => ({ entries: await fetchTopBounties(10) }),
+    },
+    {
+      id: 'BountyNoFruit',
+      run: async () => ({ entries: await fetchBountyNoFruit(10) }),
     },
     {
       id: 'LowestBounties',
