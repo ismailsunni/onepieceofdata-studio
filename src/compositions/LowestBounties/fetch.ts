@@ -4,6 +4,8 @@ export interface LowBountyRow {
   id: string
   name: string
   bounty: number
+  /** Defining crew/affiliation, to identify the more obscure pirates. */
+  crew: string | null
   imageUrl: string | null
 }
 
@@ -36,6 +38,17 @@ const STRAW_HAT_IDS = new Set([
   'Brook',
   'Jinbe',
 ])
+
+// A character may list several affiliations in an arbitrary order. Prefer the
+// canonical Straw Hat crew (so Chopper reads "Straw Hat Pirates", not the joke
+// "Foxy Pirates"), then the first actual pirate crew, then whatever's first.
+function pickCrew(groups: string[]): string | null {
+  const trimmed = groups.map((g) => g.trim()).filter(Boolean)
+  if (trimmed.length === 0) return null
+  const straw = trimmed.find((g) => /^straw hat pirates$/i.test(g))
+  if (straw) return straw
+  return trimmed.find((g) => /pirates/i.test(g)) ?? trimmed[0]
+}
 
 function isPirate(id: string, occupation: string | null): boolean {
   if (STRAW_HAT_IDS.has(id)) return true
@@ -76,6 +89,23 @@ export async function fetchLowestBounties(limit = 10): Promise<LowBountyRow[]> {
     .sort((a, b) => a.bounty - b.bounty || b.appearances - a.appearances)
     .slice(0, limit)
 
+  // Crew/affiliation for just the final rows. Ordered by group_name for a
+  // deterministic pick (snapshots must be reproducible).
+  const ids = ranked.map((r) => r.id)
+  const { data: affs, error: affErr } = await supabase
+    .from('character_affiliation')
+    .select('character_id, group_name')
+    .in('character_id', ids)
+    .order('group_name', { ascending: true })
+  if (affErr) throw affErr
+  const groupsByChar = new Map<string, string[]>()
+  for (const a of affs ?? []) {
+    const cid = String(a.character_id)
+    const list = groupsByChar.get(cid) ?? []
+    list.push(String(a.group_name))
+    groupsByChar.set(cid, list)
+  }
+
   return Promise.all(
     ranked.map(async (r) => {
       const url = characterImageUrl(r.id)
@@ -84,6 +114,7 @@ export async function fetchLowestBounties(limit = 10): Promise<LowBountyRow[]> {
         id: r.id,
         name: r.name,
         bounty: r.bounty,
+        crew: pickCrew(groupsByChar.get(r.id) ?? []),
         imageUrl: exists ? url : null,
       }
     })

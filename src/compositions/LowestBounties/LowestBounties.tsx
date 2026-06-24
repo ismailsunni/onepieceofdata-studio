@@ -16,21 +16,28 @@ export type LowestBountiesProps = {
 } & Record<string, unknown>
 
 const TITLE_DURATION = 28
-const ROW_STAGGER = 16
+const ROW_STAGGER = 15
 
-// Title sits big and centered through CENTER_HOLD (~0.5s at 30fps), then slides
-// up into its header slot (shrinking to normal size) by TITLE_SETTLED.
-const CENTER_HOLD = 15
-const TITLE_SETTLED = 43
+// Title sits big and centered through CENTER_HOLD (~0.4s at 30fps), then slides
+// up into its header slot (shrinking to normal size) by TITLE_SETTLED. Snappier
+// than before so the leaderboard starts filling sooner.
+const CENTER_HOLD = 12
+const TITLE_SETTLED = 40
 const SETTLE = 24
-// Short end hold (~1.2s) — reels loop, so a long freeze just reads as dead air.
-const END_HOLD = 36
+// Short end hold (~1.3s) — reels loop, so a long freeze just reads as dead air.
+const END_HOLD = 40
+
+// Hard cap at 6s (180 frames @ 30fps). The natural tail (full settle + end
+// hold) runs ~7.5s, which reads as dead air, so we trim it — at 180 the #1
+// card has just sprung in and is mid-flare, a tighter loop point.
+const MAX_FRAMES = 180
 
 // Reveal runs bottom-up (#N first, #1 last) so the absurdly cheap #1 lands as
-// the punchline. Duration = title + every row staggered in + a hold to read.
+// the punchline. Duration = title + every row staggered in + a hold to read,
+// clamped to MAX_FRAMES.
 export function totalFramesFor(rowCount: number): number {
   const lastStart = TITLE_DURATION + Math.max(0, rowCount - 1) * ROW_STAGGER
-  return lastStart + SETTLE + END_HOLD
+  return Math.min(lastStart + SETTLE + END_HOLD, MAX_FRAMES)
 }
 
 const AVATAR = 100
@@ -61,7 +68,7 @@ export function LowestBounties({ rows }: LowestBountiesProps) {
     <AbsoluteFill
       style={{
         background:
-          'linear-gradient(165deg, #22d3ee 0%, #3b82f6 45%, #8b5cf6 100%)',
+          'linear-gradient(165deg, #1e293b 0%, #312e81 50%, #4c1d95 100%)',
         fontFamily: 'system-ui, -apple-system, sans-serif',
         color: 'white',
         padding: '72px 56px',
@@ -71,32 +78,44 @@ export function LowestBounties({ rows }: LowestBountiesProps) {
         style={{
           textAlign: 'center',
           marginTop: 12,
-          marginBottom: 44,
+          marginBottom: 30,
           transform: `translateY(${titleY}px) scale(${titleScale})`,
         }}
       >
         <div
           style={{
-            fontSize: 30,
-            letterSpacing: 8,
+            fontSize: 28,
+            letterSpacing: 6,
             color: '#fde047',
             textTransform: 'uppercase',
             fontWeight: 700,
             textShadow: '0 2px 8px rgba(0,0,0,0.35)',
           }}
         >
-          Wanted — for very little
+          Wanted — for pocket change
         </div>
         <div
           style={{
-            fontSize: 76,
             fontWeight: 800,
-            marginTop: 8,
-            lineHeight: 1.02,
+            marginTop: 6,
+            lineHeight: 1.0,
             textShadow: '0 3px 12px rgba(0,0,0,0.4)',
           }}
         >
-          10 Lowest Bounties
+          <span style={{ fontSize: 72, display: 'block' }}>Pirates</span>
+          <span
+            style={{
+              fontSize: 30,
+              fontWeight: 600,
+              letterSpacing: 3,
+              color: '#fde047',
+              display: 'block',
+              margin: '4px 0',
+            }}
+          >
+            with the
+          </span>
+          <span style={{ fontSize: 72, display: 'block' }}>Lowest Bounties</span>
         </div>
       </div>
 
@@ -112,9 +131,10 @@ export function LowestBounties({ rows }: LowestBountiesProps) {
             fps,
             config: { damping: 14, stiffness: 120 },
           })
-          // Gold pop when the cheapest pirate finally lands.
+          // Gold pop when the cheapest pirate finally lands — flares bright,
+          // then settles to a steady glow that holds through the end beat.
           const pop = isLowest
-            ? interpolate(frame - rowStart, [0, 8, 16], [0, 1, 0], {
+            ? interpolate(frame - rowStart, [0, 10, 26], [0, 1, 0.4], {
                 extrapolateLeft: 'clamp',
                 extrapolateRight: 'clamp',
               })
@@ -125,7 +145,7 @@ export function LowestBounties({ rows }: LowestBountiesProps) {
               key={row.id}
               style={{
                 opacity: enter,
-                transform: `translateX(${(1 - enter) * -60}px)`,
+                transform: `translateY(${(1 - enter) * 36}px) scale(${0.96 + enter * 0.04})`,
                 display: 'flex',
                 alignItems: 'center',
                 gap: 24,
@@ -180,7 +200,7 @@ export function LowestBounties({ rows }: LowestBountiesProps) {
                 >
                   {row.name.replace(/_/g, ' ')}
                 </div>
-                {isLowest && (
+                {isLowest ? (
                   <div
                     style={{
                       fontSize: 26,
@@ -191,6 +211,23 @@ export function LowestBounties({ rows }: LowestBountiesProps) {
                   >
                     the cheapest pirate in the seas
                   </div>
+                ) : (
+                  row.crew && (
+                    <div
+                      style={{
+                        fontSize: 26,
+                        color: 'rgba(255,255,255,0.72)',
+                        fontWeight: 600,
+                        marginTop: 2,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        textShadow: '0 1px 4px rgba(0,0,0,0.3)',
+                      }}
+                    >
+                      {row.crew}
+                    </div>
+                  )
                 )}
               </div>
 
