@@ -50,6 +50,11 @@ import {
   totalFramesFor as arcLengthRankingFrames,
 } from '../../src/compositions/ArcLengthRanking/ArcLengthRanking'
 import type { ArcRankingSnapshot } from '../../src/compositions/ArcLengthRanking/fetch'
+import {
+  LivingConquerors,
+  totalFramesFor as livingConquerorsFrames,
+} from '../../src/compositions/LivingConquerors/LivingConquerors'
+import { ConquerorsRoster } from '../../src/compositions/ConquerorsRoster/ConquerorsRoster'
 
 const REEL_WIDTH = 1080
 const REEL_HEIGHT = 1920
@@ -163,6 +168,44 @@ const ENTRIES: CompositionEntry[] = [
     durationInFrames: (snap) => {
       const rows = (snap as { rows?: unknown[] }).rows ?? []
       return lowestBountiesFrames(rows.length)
+    },
+  },
+  {
+    id: 'ConquerorsRoster',
+    kind: 'carousel',
+    createdAt: '2026-07-04',
+    status: 'draft',
+    tags: ['haki', 'conquerors', 'factions', 'roster'],
+    title: 'Every Conqueror’s Haki User',
+    description:
+      'All 30 confirmed wielders of Conqueror’s (Haoshoku) Haki, grouped by faction — Kings, Yonko, the World Government, the new generation of heirs, and the old-era legends.',
+    component: ConquerorsRoster as ComponentType<Record<string, unknown>>,
+    width: SLIDE_WIDTH,
+    height: SLIDE_HEIGHT,
+    fps: 1,
+    snapshotPath: 'snapshots/ConquerorsRoster.json',
+    durationInFrames: (snap) => {
+      const slides = (snap as { slides?: unknown[] }).slides ?? []
+      return Math.max(slides.length, 1)
+    },
+  },
+  {
+    id: 'LivingConquerors',
+    kind: 'reel',
+    createdAt: '2026-07-04',
+    status: 'draft',
+    tags: ['haki', 'conquerors', 'bounties', 'ranking'],
+    title: 'Living Conqueror’s Haki Users',
+    description:
+      'The still-living wielders of Conqueror’s (Haoshoku) Haki, ranked by bounty — from Shanks (₿4.05B) down. Confirmed users only, ties broken by appearance count.',
+    component: LivingConquerors as ComponentType<Record<string, unknown>>,
+    width: REEL_WIDTH,
+    height: REEL_HEIGHT,
+    fps: REEL_FPS,
+    snapshotPath: 'snapshots/LivingConquerors.json',
+    durationInFrames: (snap) => {
+      const rows = (snap as { rows?: unknown[] }).rows ?? []
+      return livingConquerorsFrames(rows.length)
     },
   },
   {

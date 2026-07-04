@@ -51,6 +51,16 @@ import {
 import { loadArcRankingSnapshot } from './compositions/ArcLengthRanking/fetch'
 import { WorldCupOnePiece } from './compositions/WorldCupOnePiece/WorldCupOnePiece'
 import { loadWorldCupSnapshot } from './compositions/WorldCupOnePiece/fetch'
+import {
+  LivingConquerors,
+  totalFramesFor as livingConquerorsFrames,
+} from './compositions/LivingConquerors/LivingConquerors'
+import {
+  fetchLivingConquerors,
+  fetchLatestChapter as fetchLivingConquerorsChapter,
+} from './compositions/LivingConquerors/fetch'
+import { ConquerorsRoster } from './compositions/ConquerorsRoster/ConquerorsRoster'
+import { loadConquerorsRosterSnapshot } from './compositions/ConquerorsRoster/fetch'
 
 // Instagram Reels: 9:16 portrait, 1080x1920, 30fps.
 const REEL_WIDTH = 1080
@@ -240,6 +250,41 @@ export function Root() {
         defaultProps={{ slides: [], latestChapter: null }}
         calculateMetadata={async ({ props }) => {
           const { slides, latestChapter } = await loadWorldCupSnapshot()
+          return {
+            props: { ...props, slides, latestChapter },
+            durationInFrames: Math.max(slides.length, 1),
+          }
+        }}
+      />
+      <Composition
+        id="LivingConquerors"
+        component={LivingConquerors}
+        width={REEL_WIDTH}
+        height={REEL_HEIGHT}
+        fps={REEL_FPS}
+        durationInFrames={livingConquerorsFrames(9)}
+        defaultProps={{ rows: [], latestChapter: null }}
+        calculateMetadata={async ({ props }) => {
+          const [rows, latestChapter] = await Promise.all([
+            fetchLivingConquerors(10),
+            fetchLivingConquerorsChapter(),
+          ])
+          return {
+            props: { ...props, rows, latestChapter },
+            durationInFrames: livingConquerorsFrames(rows.length),
+          }
+        }}
+      />
+      <Composition
+        id="ConquerorsRoster"
+        component={ConquerorsRoster}
+        width={SLIDE_WIDTH}
+        height={SLIDE_HEIGHT}
+        fps={1}
+        durationInFrames={1}
+        defaultProps={{ slides: [], latestChapter: null }}
+        calculateMetadata={async ({ props }) => {
+          const { slides, latestChapter } = await loadConquerorsRosterSnapshot()
           return {
             props: { ...props, slides, latestChapter },
             durationInFrames: Math.max(slides.length, 1),

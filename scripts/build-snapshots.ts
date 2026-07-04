@@ -47,6 +47,11 @@ import { loadWishlistSnapshot } from '../src/compositions/Top100Wishlist/fetch'
 import { loadAppearanceRaceSnapshot } from '../src/compositions/AppearanceRace/fetch'
 import { loadArcRankingSnapshot } from '../src/compositions/ArcLengthRanking/fetch'
 import { loadWorldCupSnapshot } from '../src/compositions/WorldCupOnePiece/fetch'
+import {
+  fetchLivingConquerors,
+  fetchLatestChapter as fetchLivingConquerorsChapter,
+} from '../src/compositions/LivingConquerors/fetch'
+import { loadConquerorsRosterSnapshot } from '../src/compositions/ConquerorsRoster/fetch'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const outDir = resolve(here, '..', 'web', 'public', 'snapshots')
@@ -120,6 +125,20 @@ async function main() {
     {
       id: 'WorldCupOnePiece',
       run: async () => loadWorldCupSnapshot(),
+    },
+    {
+      id: 'LivingConquerors',
+      run: async () => {
+        const [rows, latestChapter] = await Promise.all([
+          fetchLivingConquerors(10),
+          fetchLivingConquerorsChapter(),
+        ])
+        return { rows, latestChapter }
+      },
+    },
+    {
+      id: 'ConquerorsRoster',
+      run: async () => loadConquerorsRosterSnapshot(),
     },
   ]
 
