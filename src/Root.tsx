@@ -61,6 +61,11 @@ import {
 } from './compositions/LivingConquerors/fetch'
 import { ConquerorsRoster } from './compositions/ConquerorsRoster/ConquerorsRoster'
 import { loadConquerorsRosterSnapshot } from './compositions/ConquerorsRoster/fetch'
+import {
+  OldestCharacters,
+  totalFramesFor as oldestCharactersFrames,
+} from './compositions/OldestCharacters/OldestCharacters'
+import { fetchOldestCharacters } from './compositions/OldestCharacters/fetch'
 
 // Instagram Reels: 9:16 portrait, 1080x1920, 30fps.
 const REEL_WIDTH = 1080
@@ -272,6 +277,22 @@ export function Root() {
           return {
             props: { ...props, rows, latestChapter },
             durationInFrames: livingConquerorsFrames(rows.length),
+          }
+        }}
+      />
+      <Composition
+        id="OldestCharacters"
+        component={OldestCharacters}
+        width={REEL_WIDTH}
+        height={REEL_HEIGHT}
+        fps={REEL_FPS}
+        durationInFrames={oldestCharactersFrames(10)}
+        defaultProps={{ rows: [] }}
+        calculateMetadata={async ({ props }) => {
+          const rows = await fetchOldestCharacters(10)
+          return {
+            props: { ...props, rows },
+            durationInFrames: oldestCharactersFrames(rows.length),
           }
         }}
       />

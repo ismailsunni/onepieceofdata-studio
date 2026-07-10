@@ -55,6 +55,10 @@ import {
   totalFramesFor as livingConquerorsFrames,
 } from '../../src/compositions/LivingConquerors/LivingConquerors'
 import { ConquerorsRoster } from '../../src/compositions/ConquerorsRoster/ConquerorsRoster'
+import {
+  OldestCharacters,
+  totalFramesFor as oldestCharactersFrames,
+} from '../../src/compositions/OldestCharacters/OldestCharacters'
 
 const REEL_WIDTH = 1080
 const REEL_HEIGHT = 1920
@@ -108,6 +112,25 @@ export interface CompositionEntry {
 // Order in this array is irrelevant — COMPOSITIONS is sorted newest-first by
 // `createdAt` at the bottom of the file.
 const ENTRIES: CompositionEntry[] = [
+  {
+    id: 'OldestCharacters',
+    kind: 'reel',
+    createdAt: '2026-07-11',
+    status: 'draft',
+    tags: ['characters', 'age', 'ranking'],
+    title: 'The Oldest Characters',
+    description:
+      'The oldest characters in One Piece by canonical age, revealed bottom-up to Zunesha (1,000+ yrs) — with the 160-year-old giants and the Enies Lobby gate guardians collapsed into shared rows.',
+    component: OldestCharacters as ComponentType<Record<string, unknown>>,
+    width: REEL_WIDTH,
+    height: REEL_HEIGHT,
+    fps: REEL_FPS,
+    snapshotPath: 'snapshots/OldestCharacters.json',
+    durationInFrames: (snap) => {
+      const rows = (snap as { rows?: unknown[] }).rows ?? []
+      return oldestCharactersFrames(rows.length)
+    },
+  },
   {
     id: 'BountyNoFruit',
     kind: 'reel',

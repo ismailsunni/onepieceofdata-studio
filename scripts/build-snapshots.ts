@@ -52,6 +52,7 @@ import {
   fetchLatestChapter as fetchLivingConquerorsChapter,
 } from '../src/compositions/LivingConquerors/fetch'
 import { loadConquerorsRosterSnapshot } from '../src/compositions/ConquerorsRoster/fetch'
+import { fetchOldestCharacters } from '../src/compositions/OldestCharacters/fetch'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const outDir = resolve(here, '..', 'web', 'public', 'snapshots')
@@ -139,6 +140,10 @@ async function main() {
     {
       id: 'ConquerorsRoster',
       run: async () => loadConquerorsRosterSnapshot(),
+    },
+    {
+      id: 'OldestCharacters',
+      run: async () => ({ rows: await fetchOldestCharacters(10) }),
     },
   ]
 
