@@ -43,6 +43,11 @@ const GROUPS: { key: string; ids: string[] }[] = [
 // with a trailing "+".
 const APPROX_IDS = new Set(['Zunesha', 'Iron_Giant', 'Nerona_Imu'])
 
+// Non-canon characters (game/movie-only) that leak into the age ranking. Lim
+// is exclusive to the game One Piece Odyssey (her origin is Waford, an island
+// that never appears in the manga), so she's dropped to keep the reel canon.
+const EXCLUDE_IDS = new Set(['Lim'])
+
 function ageLabel(ages: number[], approx: boolean): string {
   const fmt = (n: number) => n.toLocaleString('en-US')
   const min = Math.min(...ages)
@@ -74,6 +79,7 @@ export async function fetchOldestCharacters(limit = 10): Promise<OldCharRow[]> {
       age: r.age ?? 0,
       appearances: r.appearance_count ?? 0,
     }))
+    .filter((r) => !EXCLUDE_IDS.has(r.id))
     // Oldest first; within a tie, the more-appearing character wins.
     .sort((a, b) => b.age - a.age || b.appearances - a.appearances)
 
