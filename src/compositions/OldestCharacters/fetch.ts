@@ -4,6 +4,8 @@ export interface OldCharMember {
   id: string
   name: string
   imageUrl: string | null
+  /** CSS object-position for the circular crop. Defaults to 'top'. */
+  imagePosition: string
 }
 
 export interface OldCharRow {
@@ -42,6 +44,13 @@ const GROUPS: { key: string; ids: string[] }[] = [
 // years") rather than the precise databook ages everyone below carries. Shown
 // with a trailing "+".
 const APPROX_IDS = new Set(['Zunesha', 'Iron_Giant', 'Nerona_Imu'])
+
+// Portraits are cropped into a circle from the top by default, which works for
+// full-body art with the head up top. A few images are tight face panels where
+// the face sits lower, so they need a custom object-position.
+const IMAGE_POSITION: Record<string, string> = {
+  Nerona_Imu: '50% 35%',
+}
 
 // Non-canon characters (game/movie-only) that leak into the age ranking. Lim
 // is exclusive to the game One Piece Odyssey (her origin is Waford, an island
@@ -126,6 +135,7 @@ export async function fetchOldestCharacters(limit = 10): Promise<OldCharRow[]> {
             id,
             name: byId.get(id)!.name,
             imageUrl: exists ? url : null,
+            imagePosition: IMAGE_POSITION[id] ?? 'top',
           }
         })
       )
