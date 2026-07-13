@@ -51,6 +51,12 @@ import {
 import { loadArcRankingSnapshot } from './compositions/ArcLengthRanking/fetch'
 import { WorldCupOnePiece } from './compositions/WorldCupOnePiece/WorldCupOnePiece'
 import { loadWorldCupSnapshot } from './compositions/WorldCupOnePiece/fetch'
+import { WorldCupBirthdays } from './compositions/WorldCupBirthdays/WorldCupBirthdays'
+import { loadBirthdaysSnapshot } from './compositions/WorldCupBirthdays/fetch'
+import {
+  WorldCupBirthdaysReel,
+  totalFramesFor as birthdaysReelFrames,
+} from './compositions/WorldCupBirthdays/WorldCupBirthdaysReel'
 import {
   LivingConquerors,
   totalFramesFor as livingConquerorsFrames,
@@ -258,6 +264,40 @@ export function Root() {
           return {
             props: { ...props, slides, latestChapter },
             durationInFrames: Math.max(slides.length, 1),
+          }
+        }}
+      />
+      <Composition
+        id="WorldCupBirthdays"
+        component={WorldCupBirthdays}
+        width={SLIDE_WIDTH}
+        height={SLIDE_HEIGHT}
+        // Carousel: 1 frame per slide. Render with `npm run carousel`.
+        fps={1}
+        durationInFrames={1}
+        defaultProps={{ slides: [], latestChapter: null }}
+        calculateMetadata={async ({ props }) => {
+          const { slides, latestChapter } = await loadBirthdaysSnapshot()
+          return {
+            props: { ...props, slides, latestChapter },
+            durationInFrames: Math.max(slides.length, 1),
+          }
+        }}
+      />
+      <Composition
+        id="WorldCupBirthdaysReel"
+        component={WorldCupBirthdaysReel}
+        width={REEL_WIDTH}
+        height={REEL_HEIGHT}
+        fps={REEL_FPS}
+        durationInFrames={birthdaysReelFrames(4)}
+        defaultProps={{ slides: [], latestChapter: null }}
+        calculateMetadata={async ({ props }) => {
+          const { slides, latestChapter } = await loadBirthdaysSnapshot()
+          const matchCount = slides.filter((s) => s.kind === 'match').length
+          return {
+            props: { ...props, slides, latestChapter },
+            durationInFrames: birthdaysReelFrames(matchCount),
           }
         }}
       />

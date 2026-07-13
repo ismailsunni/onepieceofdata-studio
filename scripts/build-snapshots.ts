@@ -47,6 +47,7 @@ import { loadWishlistSnapshot } from '../src/compositions/Top100Wishlist/fetch'
 import { loadAppearanceRaceSnapshot } from '../src/compositions/AppearanceRace/fetch'
 import { loadArcRankingSnapshot } from '../src/compositions/ArcLengthRanking/fetch'
 import { loadWorldCupSnapshot } from '../src/compositions/WorldCupOnePiece/fetch'
+import { loadBirthdaysSnapshot } from '../src/compositions/WorldCupBirthdays/fetch'
 import {
   fetchLivingConquerors,
   fetchLatestChapter as fetchLivingConquerorsChapter,
@@ -126,6 +127,14 @@ async function main() {
     {
       id: 'WorldCupOnePiece',
       run: async () => loadWorldCupSnapshot(),
+    },
+    {
+      id: 'WorldCupBirthdays',
+      run: async () => loadBirthdaysSnapshot(),
+    },
+    {
+      id: 'WorldCupBirthdaysReel',
+      run: async () => loadBirthdaysSnapshot(),
     },
     {
       id: 'LivingConquerors',

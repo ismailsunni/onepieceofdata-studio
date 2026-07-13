@@ -34,6 +34,11 @@ import {
   SLIDE_HEIGHT,
 } from '../../src/compositions/Top100Wishlist/Top100Wishlist'
 import { WorldCupOnePiece } from '../../src/compositions/WorldCupOnePiece/WorldCupOnePiece'
+import { WorldCupBirthdays } from '../../src/compositions/WorldCupBirthdays/WorldCupBirthdays'
+import {
+  WorldCupBirthdaysReel,
+  totalFramesFor as birthdaysReelFrames,
+} from '../../src/compositions/WorldCupBirthdays/WorldCupBirthdaysReel'
 import {
   AppearanceRace,
   RACE_WIDTH,
@@ -112,6 +117,44 @@ export interface CompositionEntry {
 // Order in this array is irrelevant — COMPOSITIONS is sorted newest-first by
 // `createdAt` at the bottom of the file.
 const ENTRIES: CompositionEntry[] = [
+  {
+    id: 'WorldCupBirthdaysReel',
+    kind: 'reel',
+    createdAt: '2026-07-13',
+    status: 'draft',
+    tags: ['world-cup', 'football', 'birthdays', 'characters'],
+    title: 'World Cup Birthday Twins (Reel)',
+    description:
+      'Animated reel: the 2026 World Cup semifinalists — Messi, Mbappé, Yamal and Kane — each revealed beside the One Piece character who shares their exact birthday, framed as a bracket.',
+    component: WorldCupBirthdaysReel as ComponentType<Record<string, unknown>>,
+    width: REEL_WIDTH,
+    height: REEL_HEIGHT,
+    fps: REEL_FPS,
+    snapshotPath: 'snapshots/WorldCupBirthdaysReel.json',
+    durationInFrames: (snap) => {
+      const slides = (snap as { slides?: { kind: string }[] }).slides ?? []
+      return birthdaysReelFrames(slides.filter((s) => s.kind === 'match').length)
+    },
+  },
+  {
+    id: 'WorldCupBirthdays',
+    kind: 'carousel',
+    createdAt: '2026-07-13',
+    status: 'draft',
+    tags: ['world-cup', 'football', 'birthdays', 'characters'],
+    title: 'World Cup Icons × One Piece — Birthday Twins',
+    description:
+      'Four faces of the 2026 World Cup — Messi, Mbappé, Yamal and Kane — each paired with the One Piece character who shares their exact birthday.',
+    component: WorldCupBirthdays as ComponentType<Record<string, unknown>>,
+    width: SLIDE_WIDTH,
+    height: SLIDE_HEIGHT,
+    fps: 1,
+    snapshotPath: 'snapshots/WorldCupBirthdays.json',
+    durationInFrames: (snap) => {
+      const slides = (snap as { slides?: unknown[] }).slides ?? []
+      return Math.max(slides.length, 1)
+    },
+  },
   {
     id: 'OldestCharacters',
     kind: 'reel',
