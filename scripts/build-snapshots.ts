@@ -166,9 +166,13 @@ async function main() {
     },
   ]
 
+  // Optional id filter: `npm run web:snapshots -- OneChapterWonders`.
+  const only = new Set(process.argv.slice(2))
+  const selected = only.size ? tasks.filter((t) => only.has(t.id)) : tasks
+
   const builtAt = new Date().toISOString()
   const failures: string[] = []
-  for (const t of tasks) {
+  for (const t of selected) {
     try {
       const data = await t.run()
       await writeEnvelope(t.id, { ok: true, builtAt, data })
@@ -182,7 +186,7 @@ async function main() {
 
   if (failures.length) {
     console.error(
-      `\n${failures.length} of ${tasks.length} snapshot(s) failed: ${failures.join(', ')}`
+      `\n${failures.length} of ${selected.length} snapshot(s) failed: ${failures.join(', ')}`
     )
     console.error(
       'Continuing so the deploy can still publish the remaining reels.'
