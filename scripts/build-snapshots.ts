@@ -54,6 +54,8 @@ import {
 } from '../src/compositions/LivingConquerors/fetch'
 import { loadConquerorsRosterSnapshot } from '../src/compositions/ConquerorsRoster/fetch'
 import { fetchOldestCharacters } from '../src/compositions/OldestCharacters/fetch'
+import { loadOnePieceBirthdaysSnapshot } from '../src/compositions/OnePieceBirthdays/fetch'
+import { loadOneChapterWondersSnapshot } from '../src/compositions/OneChapterWonders/fetch'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const outDir = resolve(here, '..', 'web', 'public', 'snapshots')
@@ -153,6 +155,14 @@ async function main() {
     {
       id: 'OldestCharacters',
       run: async () => ({ rows: await fetchOldestCharacters(10) }),
+    },
+    {
+      id: 'OnePieceBirthdays',
+      run: async () => loadOnePieceBirthdaysSnapshot(),
+    },
+    {
+      id: 'OneChapterWonders',
+      run: async () => loadOneChapterWondersSnapshot(),
     },
   ]
 

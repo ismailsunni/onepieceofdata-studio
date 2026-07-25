@@ -72,6 +72,17 @@ import {
   totalFramesFor as oldestCharactersFrames,
 } from './compositions/OldestCharacters/OldestCharacters'
 import { fetchOldestCharacters } from './compositions/OldestCharacters/fetch'
+import {
+  OnePieceBirthdays,
+  SLIDE_WIDTH as birthdaysSlideWidth,
+  SLIDE_HEIGHT as birthdaysSlideHeight,
+} from './compositions/OnePieceBirthdays/OnePieceBirthdays'
+import { loadOnePieceBirthdaysSnapshot } from './compositions/OnePieceBirthdays/fetch'
+import {
+  OneChapterWonders,
+  totalFramesFor as oneChapterWondersFrames,
+} from './compositions/OneChapterWonders/OneChapterWonders'
+import { loadOneChapterWondersSnapshot } from './compositions/OneChapterWonders/fetch'
 
 // Instagram Reels: 9:16 portrait, 1080x1920, 30fps.
 const REEL_WIDTH = 1080
@@ -333,6 +344,39 @@ export function Root() {
           return {
             props: { ...props, rows },
             durationInFrames: oldestCharactersFrames(rows.length),
+          }
+        }}
+      />
+      <Composition
+        id="OnePieceBirthdays"
+        component={OnePieceBirthdays}
+        width={birthdaysSlideWidth}
+        height={birthdaysSlideHeight}
+        fps={1}
+        durationInFrames={1}
+        defaultProps={{ moments: [] }}
+        calculateMetadata={async ({ props }) => {
+          const { moments } = await loadOnePieceBirthdaysSnapshot()
+          return {
+            props: { ...props, moments },
+            // Cover + groups of three birthdays + closer.
+            durationInFrames: Math.ceil(moments.length / 3) + 2,
+          }
+        }}
+      />
+      <Composition
+        id="OneChapterWonders"
+        component={OneChapterWonders}
+        width={REEL_WIDTH}
+        height={REEL_HEIGHT}
+        fps={REEL_FPS}
+        durationInFrames={oneChapterWondersFrames(5)}
+        defaultProps={{ questions: [], totalPoints: 0, correctCount: 0 }}
+        calculateMetadata={async ({ props }) => {
+          const snapshot = await loadOneChapterWondersSnapshot()
+          return {
+            props: { ...props, ...snapshot },
+            durationInFrames: oneChapterWondersFrames(snapshot.questions.length),
           }
         }}
       />

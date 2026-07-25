@@ -64,6 +64,15 @@ import {
   OldestCharacters,
   totalFramesFor as oldestCharactersFrames,
 } from '../../src/compositions/OldestCharacters/OldestCharacters'
+import {
+  OnePieceBirthdays,
+  SLIDE_WIDTH as birthdaysSlideWidth,
+  SLIDE_HEIGHT as birthdaysSlideHeight,
+} from '../../src/compositions/OnePieceBirthdays/OnePieceBirthdays'
+import {
+  OneChapterWonders,
+  totalFramesFor as oneChapterWondersFrames,
+} from '../../src/compositions/OneChapterWonders/OneChapterWonders'
 
 const REEL_WIDTH = 1080
 const REEL_HEIGHT = 1920
@@ -117,6 +126,44 @@ export interface CompositionEntry {
 // Order in this array is irrelevant — COMPOSITIONS is sorted newest-first by
 // `createdAt` at the bottom of the file.
 const ENTRIES: CompositionEntry[] = [
+  {
+    id: 'OneChapterWonders',
+    kind: 'reel',
+    createdAt: '2026-07-25',
+    status: 'draft',
+    tags: ['game', 'quiz', 'characters', 'arcs'],
+    title: 'One-Chapter Wonders — New Game Playthrough',
+    description:
+      'A recorded round of One-Chapter Wonders, the newest game on the site: five characters who each appear in exactly one chapter of One Piece — Gyoru, Usopp’s mother Banchina, Vivi’s mother Titi, Law’s sister Lami and a Charlotte — guess-the-arc against a ticking timer, scoring 4/5.',
+    component: OneChapterWonders as ComponentType<Record<string, unknown>>,
+    width: REEL_WIDTH,
+    height: REEL_HEIGHT,
+    fps: REEL_FPS,
+    snapshotPath: 'snapshots/OneChapterWonders.json',
+    durationInFrames: (snap) => {
+      const questions = (snap as { questions?: unknown[] }).questions ?? []
+      return oneChapterWondersFrames(questions.length)
+    },
+  },
+  {
+    id: 'OnePieceBirthdays',
+    kind: 'carousel',
+    createdAt: '2026-07-23',
+    status: 'draft',
+    tags: ['anniversary', 'timeline', 'chapters', 'manga'],
+    title: 'One Piece at 29 — Every Birthday Chapter',
+    description:
+      'A 29-year birthday log: the last chapter published by 22 July of every One Piece anniversary, grouped three years at a time with its chapter title and active arc.',
+    component: OnePieceBirthdays as ComponentType<Record<string, unknown>>,
+    width: birthdaysSlideWidth,
+    height: birthdaysSlideHeight,
+    fps: 1,
+    snapshotPath: 'snapshots/OnePieceBirthdays.json',
+    durationInFrames: (snap) => {
+      const moments = (snap as { moments?: unknown[] }).moments ?? []
+      return Math.ceil(moments.length / 3) + 2
+    },
+  },
   {
     id: 'WorldCupBirthdaysReel',
     kind: 'reel',
