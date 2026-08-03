@@ -56,6 +56,7 @@ import { loadConquerorsRosterSnapshot } from '../src/compositions/ConquerorsRost
 import { fetchOldestCharacters } from '../src/compositions/OldestCharacters/fetch'
 import { loadOnePieceBirthdaysSnapshot } from '../src/compositions/OnePieceBirthdays/fetch'
 import { loadOneChapterWondersSnapshot } from '../src/compositions/OneChapterWonders/fetch'
+import { loadInheritedFruitsSnapshot } from '../src/compositions/InheritedFruits/fetch'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const outDir = resolve(here, '..', 'web', 'public', 'snapshots')
@@ -163,6 +164,10 @@ async function main() {
     {
       id: 'OneChapterWonders',
       run: async () => loadOneChapterWondersSnapshot(),
+    },
+    {
+      id: 'InheritedFruits',
+      run: async () => loadInheritedFruitsSnapshot(),
     },
   ]
 

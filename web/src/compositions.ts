@@ -73,6 +73,11 @@ import {
   OneChapterWonders,
   totalFramesFor as oneChapterWondersFrames,
 } from '../../src/compositions/OneChapterWonders/OneChapterWonders'
+import {
+  InheritedFruitsPart1,
+  InheritedFruitsPart2,
+  framesForPart as inheritedFruitsFrames,
+} from '../../src/compositions/InheritedFruits/InheritedFruits'
 
 const REEL_WIDTH = 1080
 const REEL_HEIGHT = 1920
@@ -126,6 +131,44 @@ export interface CompositionEntry {
 // Order in this array is irrelevant — COMPOSITIONS is sorted newest-first by
 // `createdAt` at the bottom of the file.
 const ENTRIES: CompositionEntry[] = [
+  {
+    id: 'InheritedFruitsPart1',
+    kind: 'reel',
+    createdAt: '2026-07-30',
+    status: 'draft',
+    tags: ['devil fruits', 'ranking', 'lore'],
+    title: 'Devil Fruits Eaten Twice — Part 1',
+    description:
+      'The first half of the Devil Fruits that outlived their first user — Rocks Pirates, Wano’s past and Thriller Bark passing their powers on.',
+    component: InheritedFruitsPart1 as ComponentType<Record<string, unknown>>,
+    width: REEL_WIDTH,
+    height: REEL_HEIGHT,
+    fps: REEL_FPS,
+    snapshotPath: 'snapshots/InheritedFruits.json',
+    durationInFrames: (snap) => {
+      const fruits = (snap as { fruits?: unknown[] }).fruits ?? []
+      return inheritedFruitsFrames(fruits.length, 1)
+    },
+  },
+  {
+    id: 'InheritedFruitsPart2',
+    kind: 'reel',
+    createdAt: '2026-07-30',
+    status: 'draft',
+    tags: ['devil fruits', 'ranking', 'lore'],
+    title: 'Devil Fruits Eaten Twice — Part 2',
+    description:
+      'The heavy hitters: Carmel to Big Mom, Ace to Sabo, Whitebeard to Blackbeard, and 900 years from Joy Boy to Luffy.',
+    component: InheritedFruitsPart2 as ComponentType<Record<string, unknown>>,
+    width: REEL_WIDTH,
+    height: REEL_HEIGHT,
+    fps: REEL_FPS,
+    snapshotPath: 'snapshots/InheritedFruits.json',
+    durationInFrames: (snap) => {
+      const fruits = (snap as { fruits?: unknown[] }).fruits ?? []
+      return inheritedFruitsFrames(fruits.length, 2)
+    },
+  },
   {
     id: 'OneChapterWonders',
     kind: 'reel',

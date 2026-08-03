@@ -83,6 +83,12 @@ import {
   totalFramesFor as oneChapterWondersFrames,
 } from './compositions/OneChapterWonders/OneChapterWonders'
 import { loadOneChapterWondersSnapshot } from './compositions/OneChapterWonders/fetch'
+import {
+  InheritedFruitsPart1,
+  InheritedFruitsPart2,
+  framesForPart as inheritedFruitsFrames,
+} from './compositions/InheritedFruits/InheritedFruits'
+import { loadInheritedFruitsSnapshot } from './compositions/InheritedFruits/fetch'
 
 // Instagram Reels: 9:16 portrait, 1080x1920, 30fps.
 const REEL_WIDTH = 1080
@@ -377,6 +383,38 @@ export function Root() {
           return {
             props: { ...props, ...snapshot },
             durationInFrames: oneChapterWondersFrames(snapshot.questions.length),
+          }
+        }}
+      />
+      <Composition
+        id="InheritedFruitsPart1"
+        component={InheritedFruitsPart1}
+        width={REEL_WIDTH}
+        height={REEL_HEIGHT}
+        fps={REEL_FPS}
+        durationInFrames={inheritedFruitsFrames(10, 1)}
+        defaultProps={{ fruits: [] }}
+        calculateMetadata={async ({ props }) => {
+          const snapshot = await loadInheritedFruitsSnapshot()
+          return {
+            props: { ...props, ...snapshot },
+            durationInFrames: inheritedFruitsFrames(snapshot.fruits.length, 1),
+          }
+        }}
+      />
+      <Composition
+        id="InheritedFruitsPart2"
+        component={InheritedFruitsPart2}
+        width={REEL_WIDTH}
+        height={REEL_HEIGHT}
+        fps={REEL_FPS}
+        durationInFrames={inheritedFruitsFrames(10, 2)}
+        defaultProps={{ fruits: [] }}
+        calculateMetadata={async ({ props }) => {
+          const snapshot = await loadInheritedFruitsSnapshot()
+          return {
+            props: { ...props, ...snapshot },
+            durationInFrames: inheritedFruitsFrames(snapshot.fruits.length, 2),
           }
         }}
       />
