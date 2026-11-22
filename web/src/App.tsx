@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   COMPOSITIONS,
+  type CompositionEntry,
   type CompositionKind,
   type PublishStatus,
 } from './compositions'
@@ -79,10 +80,24 @@ const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
   { value: 'draft', label: 'Draft' },
 ]
 
+const SECTION_TITLE: Record<PublishStatus, string> = {
+  published: 'Published',
+  scheduled: 'Scheduled',
+  draft: 'In the works',
+}
+
+function readParam<T extends string>(key: string, allowed: { value: T }[]): T {
+  const v = new URLSearchParams(window.location.search).get(key)
+  return allowed.find((f) => f.value === v)?.value ?? allowed[0].value
+}
+
+const readHash = () => decodeURIComponent(window.location.hash.slice(1))
+
 export function App() {
-  const [format, setFormat] = useState<FormatFilter>('all')
-  const [status, setStatus] = useState<StatusFilter>('all')
+  const [format, setFormat] = useState<FormatFilter>(() => readParam('format', FORMAT_FILTERS))
+  const [status, setStatus] = useState<StatusFilter>(() => readParam('status', STATUS_FILTERS))
   const [theme, setTheme] = useState<Theme>(readTheme)
+  const [linkedId, setLinkedId] = useState(readHash)
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -93,41 +108,84 @@ export function App() {
     }
   }, [theme])
 
+  // Keep filters in the URL so a filtered view can be shared.
+  useEffect(() => {
+    const p = new URLSearchParams()
+    if (format !== 'all') p.set('format', format)
+    if (status !== 'all') p.set('status', status)
+    const q = p.toString()
+    history.replaceState(null, '', `${window.location.pathname}${q ? `?${q}` : ''}${window.location.hash}`)
+  }, [format, status])
+
+  // #<id> deep-links to a composition: scroll to it and play it.
+  useEffect(() => {
+    const onHash = () => setLinkedId(readHash())
+    window.addEventListener('hashchange', onHash)
+    if (linkedId) document.getElementById(linkedId)?.scrollIntoView({ block: 'start' })
+    return () => window.removeEventListener('hashchange', onHash)
+  }, [])
+
+  const matches = (c: CompositionEntry, f: FormatFilter, s: StatusFilter) =>
+    (f === 'all' || c.kind === f) && (s === 'all' || c.status === s)
+
   const visible = useMemo(
-    () =>
-      COMPOSITIONS.filter(
-        (c) =>
-          (format === 'all' || c.kind === format) &&
-          (status === 'all' || c.status === status)
-      ),
+    () => COMPOSITIONS.filter((c) => matches(c, format, status)),
     [format, status]
   )
 
-  // Counts for one axis, respecting the other axis's current selection.
-  const formatCount = (value: FormatFilter) =>
-    COMPOSITIONS.filter(
-      (c) =>
-        (value === 'all' || c.kind === value) &&
-        (status === 'all' || c.status === status)
-    ).length
-  const statusCount = (value: StatusFilter) =>
-    COMPOSITIONS.filter(
-      (c) =>
-        (format === 'all' || c.kind === format) &&
-        (value === 'all' || c.status === value)
-    ).length
+  // Group by status (COMPOSITIONS is already ordered published → draft).
+  const sections = useMemo(() => {
+    const groups = new Map<PublishStatus, CompositionEntry[]>()
+    for (const c of visible) groups.set(c.status, [...(groups.get(c.status) ?? []), c])
+    return [...groups]
+  }, [visible])
 
-  // Autoplay the first reel on screen so the gallery opens in motion.
-  const autoPlayId = useMemo(
-    () => visible.find((c) => c.kind === 'reel')?.id,
-    [visible]
+  // Autoplay the deep-linked reel, else the first reel on screen.
+  const autoPlayId = useMemo(() => {
+    const linked = visible.find((c) => c.id === linkedId)
+    return linked?.kind === 'reel' ? linked.id : visible.find((c) => c.kind === 'reel')?.id
+  }, [visible, linkedId])
+
+  const filterGroup = <T extends string>(
+    label: string,
+    options: { value: T; label: string }[],
+    value: T,
+    setValue: (v: T) => void,
+    count: (v: T) => number
+  ) => (
+    <div className="filter-group" role="group" aria-label={`Filter by ${label.toLowerCase()}`}>
+      <span className="filter-label">{label}</span>
+      {options
+        // Hide options nothing could ever match (e.g. no videos yet).
+        .filter(
+          (f) =>
+            f.value === 'all' ||
+            f.value === value ||
+            COMPOSITIONS.some((c) => c.kind === f.value || c.status === f.value)
+        )
+        .map((f) => (
+          <button
+            key={f.value}
+            type="button"
+            className={`pill${value === f.value ? ' pill-active' : ''}`}
+            aria-pressed={value === f.value}
+            onClick={() => setValue(f.value)}
+          >
+            {f.label}
+            <span className="pill-count">{count(f.value)}</span>
+          </button>
+        ))}
+    </div>
   )
 
   return (
     <main className="page">
       <header className="header">
         <div className="header-top">
-          <h1>One Piece of Data — Studio</h1>
+          <div>
+            <p className="eyebrow">One Piece of Data</p>
+            <h1>Studio</h1>
+          </div>
           <button
             type="button"
             className="theme-toggle"
@@ -138,72 +196,58 @@ export function App() {
             <ThemeIcon theme={theme} />
           </button>
         </div>
-        <p className="header-cta">
+        <p className="tagline">
           Data-driven reels and carousels about the world of One Piece — every
-          chart, ranking, and number pulled straight from the dataset, with new
-          drops landing here — follow along on{' '}
+          chart, ranking and number pulled straight from the dataset.
+        </p>
+        <div className="header-links">
           <a
+            className="btn btn-primary"
             href="https://www.instagram.com/onepieceofdata/"
             target="_blank"
             rel="noreferrer"
           >
-            Instagram
+            Follow on Instagram
           </a>
-          . Want to dig into the data yourself, run custom analytics, or build
-          your own visualizations? Head to{' '}
-          <a href="https://onepieceofdata.com" target="_blank" rel="noreferrer">
-            onepieceofdata.com
+          <a className="btn" href="https://onepieceofdata.com" target="_blank" rel="noreferrer">
+            Explore the data ↗
           </a>
-          .
-        </p>
+        </div>
       </header>
 
-      <nav className="filters" aria-label="Filter by format">
-        <span className="filter-label">Format</span>
-        {FORMAT_FILTERS.map((f) => (
-          <button
-            key={f.value}
-            type="button"
-            className={`pill${format === f.value ? ' pill-active' : ''}`}
-            aria-pressed={format === f.value}
-            onClick={() => setFormat(f.value)}
-          >
-            {f.label}
-            <span className="pill-count">{formatCount(f.value)}</span>
-          </button>
-        ))}
-      </nav>
-
-      <nav className="filters" aria-label="Filter by status">
-        <span className="filter-label">Status</span>
-        {STATUS_FILTERS.map((f) => (
-          <button
-            key={f.value}
-            type="button"
-            className={`pill${status === f.value ? ' pill-active' : ''}`}
-            aria-pressed={status === f.value}
-            onClick={() => setStatus(f.value)}
-          >
-            {f.label}
-            <span className="pill-count">{statusCount(f.value)}</span>
-          </button>
-        ))}
-      </nav>
+      <div className="filters">
+        {filterGroup('Format', FORMAT_FILTERS, format, setFormat, (v) =>
+          COMPOSITIONS.filter((c) => matches(c, v, status)).length
+        )}
+        {filterGroup('Status', STATUS_FILTERS, status, setStatus, (v) =>
+          COMPOSITIONS.filter((c) => matches(c, format, v)).length
+        )}
+      </div>
 
       {visible.length === 0 ? (
         <div className="empty-state">
           Nothing matches this filter yet — try another combination.
         </div>
       ) : (
-        <section className="gallery">
-          {visible.map((c) => (
-            <CompositionCard
-              key={c.id}
-              entry={c}
-              autoPlay={c.id === autoPlayId}
-            />
-          ))}
-        </section>
+        sections.map(([s, items]) => (
+          <section key={s} className="section" aria-label={SECTION_TITLE[s]}>
+            {sections.length > 1 && (
+              <h2 className="section-title">
+                {SECTION_TITLE[s]} <span className="pill-count">{items.length}</span>
+              </h2>
+            )}
+            <div className="gallery">
+              {items.map((c) => (
+                <CompositionCard
+                  key={c.id}
+                  entry={c}
+                  autoPlay={c.id === autoPlayId}
+                  linked={c.id === linkedId}
+                />
+              ))}
+            </div>
+          </section>
+        ))
       )}
     </main>
   )

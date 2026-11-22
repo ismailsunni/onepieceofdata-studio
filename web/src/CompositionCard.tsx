@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Player, type PlayerRef } from '@remotion/player'
 import type {
   CompositionEntry,
+  CompositionKind,
   Platform,
   PublishStatus,
 } from './compositions'
@@ -9,12 +10,19 @@ import type {
 interface Props {
   entry: CompositionEntry
   autoPlay?: boolean
+  linked?: boolean
 }
 
 const STATUS_LABEL: Record<PublishStatus, string> = {
   draft: 'Draft',
   scheduled: 'Scheduled',
   published: 'Published',
+}
+
+const KIND_LABEL: Record<CompositionKind, string> = {
+  reel: 'Reel',
+  carousel: 'Carousel',
+  video: 'Video',
 }
 
 const PLATFORM_LABEL: Record<Platform, string> = {
@@ -35,6 +43,11 @@ function formatDate(iso: string): string {
   })
 }
 
+function formatLength(frames: number, fps: number): string {
+  const s = Math.round(frames / fps)
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+}
+
 interface SnapshotEnvelope {
   ok: boolean
   builtAt: string
@@ -43,105 +56,144 @@ interface SnapshotEnvelope {
 }
 
 type SnapshotState =
-  | { status: 'loading' }
-  | { status: 'ok'; data: Record<string, unknown>; builtAt: string }
+  | { status: 'idle' }
+  | { status: 'ok'; data: Record<string, unknown> }
   | { status: 'build-failed'; message: string; builtAt: string }
   | { status: 'fetch-failed'; message: string }
 
-export function CompositionCard({ entry, autoPlay = false }: Props) {
-  const [state, setState] = useState<SnapshotState>({ status: 'loading' })
+// Only one player plays at a time across the gallery.
+let activePlayer: PlayerRef | null = null
+
+function claim(p: PlayerRef) {
+  if (activePlayer && activePlayer !== p) activePlayer.pause()
+  activePlayer = p
+}
+
+export function CompositionCard({ entry, autoPlay = false, linked = false }: Props) {
+  const cardRef = useRef<HTMLElement>(null)
   const playerRef = useRef<PlayerRef>(null)
+  const [near, setNear] = useState(false)
+  const [state, setState] = useState<SnapshotState>({ status: 'idle' })
+  const [slide, setSlide] = useState(entry.posterFrame ?? 0)
+  const isCarousel = entry.kind === 'carousel'
 
-  // Kick off playback once the snapshot is ready. The Player's own `autoPlay`
-  // can be swallowed by the browser's autoplay policy, so we also drive it
-  // imperatively and retry on the first user interaction with the page.
+  // Defer fetching the snapshot and mounting the player until the card nears the viewport.
   useEffect(() => {
-    if (!autoPlay || state.status !== 'ok') return
-
-    const start = () => playerRef.current?.play()
-    // Defer to the next tick so the player has mounted and registered.
-    const id = window.setTimeout(start, 0)
-
-    const onInteract = () => start()
-    window.addEventListener('pointerdown', onInteract, { once: true })
-    window.addEventListener('keydown', onInteract, { once: true })
-
-    return () => {
-      window.clearTimeout(id)
-      window.removeEventListener('pointerdown', onInteract)
-      window.removeEventListener('keydown', onInteract)
-    }
-  }, [autoPlay, state.status])
+    const el = cardRef.current
+    if (!el || near) return
+    const io = new IntersectionObserver(
+      ([e]) => e.isIntersecting && setNear(true),
+      { rootMargin: '600px 0px' }
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [near])
 
   useEffect(() => {
+    if (!near) return
     let cancelled = false
-    const url = `${import.meta.env.BASE_URL}${entry.snapshotPath}`
-    fetch(url)
+    fetch(`${import.meta.env.BASE_URL}${entry.snapshotPath}`)
       .then(async (r) => {
         if (!r.ok) throw new Error(`${r.status} ${r.statusText}`)
         return (await r.json()) as SnapshotEnvelope
       })
-      .then((envelope) => {
+      .then((env) => {
         if (cancelled) return
-        if (envelope.ok && envelope.data) {
-          setState({
-            status: 'ok',
-            data: envelope.data,
-            builtAt: envelope.builtAt,
-          })
-        } else {
-          setState({
-            status: 'build-failed',
-            message: envelope.error ?? 'Unknown build error',
-            builtAt: envelope.builtAt,
-          })
-        }
+        setState(
+          env.ok && env.data
+            ? { status: 'ok', data: env.data }
+            : {
+                status: 'build-failed',
+                message: env.error ?? 'Unknown build error',
+                builtAt: env.builtAt,
+              }
+        )
       })
       .catch((err) => {
         if (!cancelled)
-          setState({
-            status: 'fetch-failed',
-            message: String(err.message ?? err),
-          })
+          setState({ status: 'fetch-failed', message: String(err.message ?? err) })
       })
     return () => {
       cancelled = true
     }
-  }, [entry.snapshotPath])
+  }, [near, entry.snapshotPath])
 
-  const durationInFrames =
-    state.status === 'ok' ? entry.durationInFrames(state.data) : 1
+  const ready = state.status === 'ok'
+
+  // Wire up single-active playback and carousel slide tracking.
+  useEffect(() => {
+    const p = playerRef.current
+    if (!ready || !p) return
+    const onPlay = () => claim(p)
+    const onFrame = (e: { detail: { frame: number } }) => setSlide(e.detail.frame)
+    p.addEventListener('play', onPlay)
+    p.addEventListener('frameupdate', onFrame)
+    p.addEventListener('seeked', onFrame)
+    return () => {
+      p.removeEventListener('play', onPlay)
+      p.removeEventListener('frameupdate', onFrame)
+      p.removeEventListener('seeked', onFrame)
+    }
+  }, [ready])
+
+  // Kick off playback once ready. The Player's own `autoPlay` can be swallowed
+  // by the browser's autoplay policy, so also retry on the first interaction.
+  useEffect(() => {
+    if (!autoPlay || !ready) return
+    // Claim here too: the Player may start before our 'play' listener is attached.
+    const start = () => {
+      const p = playerRef.current
+      if (!p) return
+      claim(p)
+      if (!p.isPlaying()) p.play()
+    }
+    // Don't hijack a click that was meant for another player.
+    const retry = (e: Event) => {
+      if (!(e.target as Element | null)?.closest?.('.player-wrap')) start()
+    }
+    const id = window.setTimeout(start, 0)
+    window.addEventListener('pointerdown', retry, { once: true })
+    window.addEventListener('keydown', retry, { once: true })
+    return () => {
+      window.clearTimeout(id)
+      window.removeEventListener('pointerdown', retry)
+      window.removeEventListener('keydown', retry)
+    }
+  }, [autoPlay, ready])
+
+  const frames = ready ? Math.max(entry.durationInFrames(state.data), 1) : 1
+  const goTo = (i: number) => playerRef.current?.seekTo(Math.min(Math.max(i, 0), frames - 1))
 
   return (
-    <article className="card">
+    <article className={`card${linked ? ' card-linked' : ''}`} id={entry.id} ref={cardRef}>
       <header className="card-header">
         <div className="card-title-row">
-          <h2 className="card-title">{entry.title}</h2>
+          <h3 className="card-title">
+            <a href={`#${entry.id}`}>{entry.title}</a>
+          </h3>
           <span className={`badge status-${entry.status}`}>
             {STATUS_LABEL[entry.status]}
           </span>
         </div>
-        <p className="card-meta">
-          {entry.description} · {entry.width}×{entry.height} · {entry.fps} fps
+        <p className="card-desc" title={entry.description}>
+          {entry.description}
         </p>
         <div className="card-info">
-          <span className="card-info-item">
-            Created {formatDate(entry.createdAt)}
+          <span>
+            {KIND_LABEL[entry.kind]}
+            {ready &&
+              (isCarousel
+                ? ` · ${frames} slides`
+                : ` · ${formatLength(frames, entry.fps)}`)}
           </span>
           {entry.publication ? (
-            <a
-              className="card-info-item link"
-              href={entry.publication.url}
-              target="_blank"
-              rel="noreferrer"
-            >
+            <a className="link" href={entry.publication.url} target="_blank" rel="noreferrer">
               ↗ {PLATFORM_LABEL[entry.publication.platform]}
-              {entry.publication.publishedAt
-                ? ` · ${formatDate(entry.publication.publishedAt)}`
-                : ''}
+              {entry.publication.publishedAt &&
+                ` · ${formatDate(entry.publication.publishedAt)}`}
             </a>
           ) : (
-            <span className="card-info-item muted">Not published</span>
+            <span>Created {formatDate(entry.createdAt)}</span>
           )}
         </div>
         {entry.tags && entry.tags.length > 0 && (
@@ -154,45 +206,76 @@ export function CompositionCard({ entry, autoPlay = false }: Props) {
           </div>
         )}
       </header>
-      <div
-        className="player-wrap"
-        style={{ aspectRatio: `${entry.width} / ${entry.height}` }}
-      >
-        {state.status === 'loading' && (
-          <div className="status">Loading snapshot…</div>
-        )}
-        {state.status === 'fetch-failed' && (
-          <div className="status error">
-            Couldn’t load snapshot:&nbsp;{state.message}
+      <div className="player-wrap">
+        <div
+          className="player-frame"
+          style={{ aspectRatio: `${entry.width} / ${entry.height}` }}
+        >
+          {state.status === 'idle' && <div className="status">Loading…</div>}
+          {state.status === 'fetch-failed' && (
+            <div className="status error">Couldn’t load snapshot: {state.message}</div>
+          )}
+          {state.status === 'build-failed' && (
+            <div className="status error">
+              <strong>Build failed</strong>
+              <code>{state.message}</code>
+              <small>last attempt: {new Date(state.builtAt).toLocaleString()}</small>
+            </div>
+          )}
+          {ready && (
+            <Player
+              ref={playerRef}
+              component={entry.component}
+              inputProps={state.data}
+              durationInFrames={frames}
+              fps={entry.fps}
+              compositionWidth={entry.width}
+              compositionHeight={entry.height}
+              initialFrame={Math.min(entry.posterFrame ?? 0, frames - 1)}
+              controls={!isCarousel}
+              clickToPlay={!isCarousel}
+              loop={!isCarousel}
+              autoPlay={autoPlay}
+              acknowledgeRemotionLicense
+              style={{ width: '100%', height: '100%' }}
+            />
+          )}
+          {ready && isCarousel && (
+            <>
+              <button
+                type="button"
+                className="slide-arrow prev"
+                aria-label="Previous slide"
+                disabled={slide === 0}
+                onClick={() => goTo(slide - 1)}
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                className="slide-arrow next"
+                aria-label="Next slide"
+                disabled={slide >= frames - 1}
+                onClick={() => goTo(slide + 1)}
+              >
+                ›
+              </button>
+            </>
+          )}
+        </div>
+        {ready && isCarousel && (
+          <div className="slide-dots" role="group" aria-label="Slides">
+            {Array.from({ length: frames }, (_, i) => (
+              <button
+                key={i}
+                type="button"
+                className={`dot${i === slide ? ' dot-active' : ''}`}
+                aria-label={`Slide ${i + 1} of ${frames}`}
+                aria-current={i === slide}
+                onClick={() => goTo(i)}
+              />
+            ))}
           </div>
-        )}
-        {state.status === 'build-failed' && (
-          <div className="status error">
-            <strong>Build failed</strong>
-            <br />
-            <code style={{ fontSize: '0.8rem', wordBreak: 'break-word' }}>
-              {state.message}
-            </code>
-            <br />
-            <small style={{ color: '#9aa0ad' }}>
-              last attempt: {new Date(state.builtAt).toLocaleString()}
-            </small>
-          </div>
-        )}
-        {state.status === 'ok' && (
-          <Player
-            ref={playerRef}
-            component={entry.component}
-            inputProps={state.data}
-            durationInFrames={Math.max(durationInFrames, 1)}
-            fps={entry.fps}
-            compositionWidth={entry.width}
-            compositionHeight={entry.height}
-            controls
-            loop
-            autoPlay={autoPlay}
-            style={{ width: '100%', height: '100%' }}
-          />
         )}
       </div>
     </article>

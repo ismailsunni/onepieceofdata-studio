@@ -112,11 +112,11 @@ export interface CompositionEntry {
   height: number
   fps: number
   snapshotPath: string
+  /** Frame shown before playback; pick one past any empty intro. */
+  posterFrame?: number
   durationInFrames: (snapshot: Record<string, unknown>) => number
 }
 
-// Ordered newest-first — most recently added composition at the top.
-//
 // `createdAt` is seeded from each composition's first git commit; `status` and
 // `tags` are editorial. When a piece goes live, flip its status and add the
 // publication, e.g.:
@@ -128,8 +128,8 @@ export interface CompositionEntry {
 //     publishedAt: '2026-06-01',
 //   },
 //
-// Order in this array is irrelevant — COMPOSITIONS is sorted newest-first by
-// `createdAt` at the bottom of the file.
+// Order in this array is irrelevant — COMPOSITIONS is sorted at the bottom of
+// the file.
 const ENTRIES: CompositionEntry[] = [
   {
     id: 'InheritedFruitsPart1',
@@ -145,6 +145,7 @@ const ENTRIES: CompositionEntry[] = [
     height: REEL_HEIGHT,
     fps: REEL_FPS,
     snapshotPath: 'snapshots/InheritedFruits.json',
+    posterFrame: 30,
     durationInFrames: (snap) => {
       const fruits = (snap as { fruits?: unknown[] }).fruits ?? []
       return inheritedFruitsFrames(fruits.length, 1)
@@ -164,6 +165,7 @@ const ENTRIES: CompositionEntry[] = [
     height: REEL_HEIGHT,
     fps: REEL_FPS,
     snapshotPath: 'snapshots/InheritedFruits.json',
+    posterFrame: 30,
     durationInFrames: (snap) => {
       const fruits = (snap as { fruits?: unknown[] }).fruits ?? []
       return inheritedFruitsFrames(fruits.length, 2)
@@ -183,6 +185,7 @@ const ENTRIES: CompositionEntry[] = [
     height: REEL_HEIGHT,
     fps: REEL_FPS,
     snapshotPath: 'snapshots/OneChapterWonders.json',
+    posterFrame: 30,
     durationInFrames: (snap) => {
       const questions = (snap as { questions?: unknown[] }).questions ?? []
       return oneChapterWondersFrames(questions.length)
@@ -221,6 +224,7 @@ const ENTRIES: CompositionEntry[] = [
     height: REEL_HEIGHT,
     fps: REEL_FPS,
     snapshotPath: 'snapshots/WorldCupBirthdaysReel.json',
+    posterFrame: 60,
     durationInFrames: (snap) => {
       const slides = (snap as { slides?: { kind: string }[] }).slides ?? []
       return birthdaysReelFrames(slides.filter((s) => s.kind === 'match').length)
@@ -466,6 +470,7 @@ const ENTRIES: CompositionEntry[] = [
     height: REEL_HEIGHT,
     fps: REEL_FPS,
     snapshotPath: 'snapshots/TopSnubbed.json',
+    posterFrame: 30,
     durationInFrames: (snap) => {
       const rows = (snap as { rows?: unknown[] }).rows ?? []
       return topSnubbedFrames(rows.length)
@@ -512,6 +517,7 @@ const ENTRIES: CompositionEntry[] = [
     height: REEL_HEIGHT,
     fps: REEL_FPS,
     snapshotPath: 'snapshots/EastBlueWeakest.json',
+    posterFrame: 30,
     durationInFrames: (snap) => {
       const cards = (snap as EastBlueWeakestProps).cards ?? []
       return eastBlueWeakestFrames(cards.length)
@@ -543,11 +549,16 @@ const ENTRIES: CompositionEntry[] = [
   },
 ]
 
-// Newest-first by creation date. localeCompare on ISO YYYY-MM-DD strings sorts
-// chronologically; Array.prototype.sort is stable, so same-day entries keep
-// their ENTRIES order.
-export const COMPOSITIONS: CompositionEntry[] = [...ENTRIES].sort((a, b) =>
-  b.createdAt.localeCompare(a.createdAt)
+const STATUS_ORDER: PublishStatus[] = ['published', 'scheduled', 'draft']
+
+const sortDate = (c: CompositionEntry) => c.publication?.publishedAt ?? c.createdAt
+
+// Published first, then scheduled, then drafts; newest-first within each group.
+// ISO YYYY-MM-DD strings sort chronologically, and sort is stable.
+export const COMPOSITIONS: CompositionEntry[] = [...ENTRIES].sort(
+  (a, b) =>
+    STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status) ||
+    sortDate(b).localeCompare(sortDate(a))
 )
 
 // Silence "imported but only used as type-info" warnings for prop shapes we
