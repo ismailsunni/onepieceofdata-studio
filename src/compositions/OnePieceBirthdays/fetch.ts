@@ -17,21 +17,6 @@ const ANNIVERSARY_MONTH_DAY = '-07-22'
 const FIRST_BIRTHDAY_YEAR = 1998
 const LAST_BIRTHDAY_YEAR = 2026
 
-function dateLabel(iso: string | null): string {
-  if (!iso) return 'No chapter yet'
-  const date = new Date(`${iso}T00:00:00Z`)
-  return new Intl.DateTimeFormat('en', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    timeZone: 'UTC',
-  }).format(date)
-}
-
-export function formatPublishedOn(iso: string | null): string {
-  return dateLabel(iso)
-}
-
 /**
  * A birthday means the manga's state on 22 July of that calendar year. We use
  * the last chapter published on or before that date, rather than an estimate.

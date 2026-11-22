@@ -1,9 +1,17 @@
 import { AbsoluteFill, useCurrentFrame } from 'remotion'
 import { SITE } from '../../components/Watermark'
-import {
-  formatPublishedOn,
-  type BirthdayMoment,
-} from './fetch'
+import type { BirthdayMoment } from './fetch'
+
+// Kept out of fetch.ts so the web bundle never pulls in the Supabase client.
+function formatPublishedOn(iso: string | null): string {
+  if (!iso) return 'No chapter yet'
+  return new Intl.DateTimeFormat('en', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(`${iso}T00:00:00Z`))
+}
 
 export type OnePieceBirthdaysProps = {
   moments: BirthdayMoment[]
